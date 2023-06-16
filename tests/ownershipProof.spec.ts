@@ -1,0 +1,66 @@
+import { assert } from 'chai';
+import { getCircuit, poseidonHash, randomAccount, randomHex, signPoseidon } from './helpers';
+
+describe('ownershipProof', function () {
+  this.timeout(8000);
+  let circuit;
+
+  before(async function () {
+    circuit = await getCircuit('ownershipProof');
+  });
+
+  it('should verify successfully for correct signature', async function () {
+    const commitment = poseidonHash(randomHex(32));
+    const account = randomAccount();
+    const sign = signPoseidon(commitment, account.privateKey);
+
+    const inputs = {
+      commitment,
+      publicKey: account.publicKey,
+      signature: [sign.R8[0], sign.R8[1], sign.S],
+    };
+
+    await assert.isFulfilled(circuit.calculateWitness(inputs, true));
+
+    const witness = await circuit.calculateWitness(inputs);
+    await circuit.checkConstraints(witness);
+  });
+
+  it('should fail verification for incorrect signatures', async function () {
+    const commitment = poseidonHash(randomHex(32));
+    const account = randomAccount();
+    const badAccount = randomAccount();
+    const badSign = signPoseidon(commitment, badAccount.privateKey);
+
+    const inputs = {
+      commitment,
+      publicKey: account.publicKey,
+      signature: [badSign.R8[0], badSign.R8[1], badSign.S],
+    };
+
+    await assert.isRejected(circuit.calculateWitness(inputs, true), Error);
+  });
+
+  it('should fail verification for incorrect message or public key', async function () {
+    const commitment = poseidonHash(randomHex(32));
+    const badCommitment = poseidonHash(randomHex(32));
+    const account = randomAccount();
+    const badAccount = randomAccount();
+    const badSign = signPoseidon(commitment, account.privateKey);
+
+    const badCommitmentInputs = {
+      commitment: badCommitment,
+      publicKey: account.publicKey,
+      signature: [badSign.R8[0], badSign.R8[1], badSign.S],
+    };
+
+    const badPublicKeyInputs = {
+      commitment,
+      publicKey: badAccount.publicKey,
+      signature: [badSign.R8[0], badSign.R8[1], badSign.S],
+    };
+
+    await assert.isRejected(circuit.calculateWitness(badCommitmentInputs, true), Error);
+    await assert.isRejected(circuit.calculateWitness(badPublicKeyInputs, true), Error);
+  });
+});

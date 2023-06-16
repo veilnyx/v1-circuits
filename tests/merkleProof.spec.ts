@@ -1,0 +1,60 @@
+import { assert } from 'chai';
+import { BigNumber } from 'ethers';
+import { MerkleTree } from 'fixed-merkle-tree';
+import { getCircuit, poseidonHash, randomHex } from './helpers';
+
+const getTree = () => new MerkleTree(20, [], { hashFunction: poseidonHash });
+const randomLeaf = () => poseidonHash(randomHex(32));
+
+describe('merkleProof', function () {
+  this.timeout(8000);
+  let circuit;
+
+  before(async function () {
+    circuit = await getCircuit('merkleProof20');
+  });
+
+  it('should verify correct inclusion path', async function () {
+    const tree = getTree();
+    const leaves = [randomLeaf(), randomLeaf(), randomLeaf(), randomLeaf()];
+    tree.bulkInsert(leaves);
+
+    const root = BigNumber.from(tree.root).toHexString();
+    const proofElement = leaves[1];
+    const idx = tree.indexOf(proofElement);
+    const pathElements = tree.path(idx).pathElements;
+
+    const inputs = {
+      leaf: proofElement,
+      pathElements,
+      pathIndices: idx,
+      root,
+    };
+
+    await assert.isFulfilled(circuit.calculateWitness(inputs, true));
+
+    const witness = await circuit.calculateWitness(inputs);
+    await circuit.checkConstraints(witness);
+  });
+
+  it('should fail verification for incorrect inclusion path', async function () {
+    const tree = getTree();
+    const leaves = [randomLeaf(), randomLeaf(), randomLeaf()];
+    tree.bulkInsert(leaves);
+
+    const root = BigNumber.from(tree.root).toHexString();
+    const proofElement = leaves[1];
+    const badProofElement = 3;
+    const idx = tree.indexOf(proofElement);
+    const pathElements = tree.path(idx).pathElements;
+
+    const inputs = {
+      leaf: badProofElement,
+      pathElements,
+      pathIndices: idx,
+      root,
+    };
+
+    await assert.isRejected(circuit.calculateWitness(inputs, true), Error);
+  });
+});
