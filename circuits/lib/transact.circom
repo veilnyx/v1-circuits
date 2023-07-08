@@ -28,7 +28,7 @@ template Transact(nLevels, nIns, nOuts) {
     
     signal input inPublicValue;
     signal input inPublicKey[nIns][2]; //@todo Do we really need `nIns` public keys?
-    signal input inSignature[nIns][3];
+    signal input inSignature[nIns][2];
     signal input inValue[nIns];
     signal input inSalt[nIns];
     signal input inNullifier[nIns];

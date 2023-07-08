@@ -8,7 +8,7 @@ template MultiTransact(nLevels, nA, nIns, nOuts) {
 
     signal input inPublicValue[nA];
     signal input inPublicKey[nA][nIns][2];
-    signal input inSignature[nA][nIns][3];
+    signal input inSignature[nA][nIns][2];
     signal input inValue[nA][nIns];
     signal input inSalt[nA][nIns];
     signal input inNullifier[nA][nIns];

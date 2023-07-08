@@ -44,10 +44,8 @@ describe('multiTransact', function () {
     const signs1 = inNotes1.map((note) => signPoseidon(note.commitment, account.privateKey));
     const signs2 = inNotes2.map((note) => signPoseidon(note.commitment, account.privateKey));
 
-    const nullifiers1 = signs1.map((sign, i) => poseidonHash(i, sign.R8[0], sign.R8[1], sign.S));
-    const nullifiers2 = signs2.map((sign, i) =>
-      poseidonHash(i + 2, sign.R8[0], sign.R8[1], sign.S),
-    );
+    const nullifiers1 = signs1.map((sign, i) => poseidonHash(i, sign.S, sign.e));
+    const nullifiers2 = signs2.map((sign, i) => poseidonHash(i + 2, sign.S, sign.e));
 
     const outNotes1 = [
       createNote({ address, value: 5, assetId: assetIds[0] }),
@@ -71,12 +69,12 @@ describe('multiTransact', function () {
       ],
       inSignature: [
         [
-          [signs1[0].R8[0], signs1[0].R8[1], signs1[0].S],
-          [signs1[1].R8[0], signs1[1].R8[1], signs1[1].S],
+          [signs1[0].S, signs1[0].e],
+          [signs1[1].S, signs1[1].e],
         ],
         [
-          [signs2[0].R8[0], signs2[0].R8[1], signs2[0].S],
-          [signs2[1].R8[0], signs2[1].R8[1], signs2[1].S],
+          [signs2[0].S, signs2[0].e],
+          [signs2[1].S, signs2[1].e],
         ],
       ],
       inValue: [inNotes1.map((n) => n.value), inNotes2.map((n) => n.value)],

@@ -17,7 +17,7 @@ describe('ownershipProof', function () {
     const inputs = {
       commitment,
       publicKey: account.publicKey,
-      signature: [sign.R8[0], sign.R8[1], sign.S],
+      signature: [sign.S, sign.e],
     };
 
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
@@ -35,7 +35,7 @@ describe('ownershipProof', function () {
     const inputs = {
       commitment,
       publicKey: account.publicKey,
-      signature: [badSign.R8[0], badSign.R8[1], badSign.S],
+      signature: [badSign.S, badSign.e],
     };
 
     await assert.isRejected(circuit.calculateWitness(inputs, true), Error);
@@ -51,13 +51,13 @@ describe('ownershipProof', function () {
     const badCommitmentInputs = {
       commitment: badCommitment,
       publicKey: account.publicKey,
-      signature: [badSign.R8[0], badSign.R8[1], badSign.S],
+      signature: [badSign.S, badSign.e],
     };
 
     const badPublicKeyInputs = {
       commitment,
       publicKey: badAccount.publicKey,
-      signature: [badSign.R8[0], badSign.R8[1], badSign.S],
+      signature: [badSign.S, badSign.e],
     };
 
     await assert.isRejected(circuit.calculateWitness(badCommitmentInputs, true), Error);

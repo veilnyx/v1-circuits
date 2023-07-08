@@ -33,8 +33,8 @@ describe('transact', function () {
     const sign1 = signPoseidon(inNote1.commitment, account.privateKey);
     const sign2 = signPoseidon(inNote2.commitment, account.privateKey);
 
-    const nullifier1 = poseidonHash(0, sign1.R8[0], sign1.R8[1], sign1.S);
-    const nullifier2 = poseidonHash(1, sign2.R8[0], sign2.R8[1], sign2.S);
+    const nullifier1 = poseidonHash(0, sign1.S, sign1.e);
+    const nullifier2 = poseidonHash(1, sign2.S, sign2.e);
 
     const outNote1 = createNote({ address, value: 5 });
     const outNote2 = createNote({ address, value: 20 });
@@ -47,8 +47,8 @@ describe('transact', function () {
       inPublicValue: 0,
       inPublicKey: [account.publicKey, account.publicKey],
       inSignature: [
-        [sign1.R8[0], sign1.R8[1], sign1.S],
-        [sign2.R8[0], sign2.R8[1], sign2.S],
+        [sign1.S, sign1.e],
+        [sign2.S, sign2.e],
       ],
       inValue: [inNote1.value, inNote2.value],
       inSalt: [inNote1.salt, inNote2.salt],
@@ -79,8 +79,8 @@ describe('transact', function () {
     const sign1 = signPoseidon(inNote1.commitment, account.privateKey);
     const sign2 = signPoseidon(inNote2.commitment, account.privateKey);
 
-    const nullifier1 = poseidonHash(0, sign1.R8[0], sign1.R8[1], sign1.S);
-    const nullifier2 = poseidonHash(1, sign2.R8[0], sign2.R8[1], sign2.S);
+    const nullifier1 = poseidonHash(0, sign1.S, sign1.e);
+    const nullifier2 = poseidonHash(1, sign2.S, sign2.e);
 
     const outNote1 = createNote({ address, value: 5 });
     const outNote2 = createNote({ address, value: 20 });
@@ -93,8 +93,8 @@ describe('transact', function () {
       inPublicValue: 0,
       inPublicKey: [account.publicKey, account.publicKey],
       inSignature: [
-        [sign1.R8[0], sign1.R8[1], sign1.S],
-        [sign2.R8[0], sign2.R8[1], sign2.S],
+        [sign1.S, sign1.e],
+        [sign2.S, sign2.e],
       ],
       inValue: [inNote1.value, inNote2.value],
       inSalt: [inNote1.salt, randomHex(31)],
@@ -155,8 +155,8 @@ describe('transact', function () {
     const sign1 = signPoseidon(inNote1.commitment, account.privateKey);
     const sign2 = signPoseidon(inNote2.commitment, account.privateKey);
 
-    const nullifier1 = poseidonHash(0, sign1.R8[0], sign1.R8[1], sign1.S);
-    const nullifier2 = poseidonHash(1, sign2.R8[0], sign2.R8[1], sign2.S);
+    const nullifier1 = poseidonHash(0, sign1.S, sign1.e);
+    const nullifier2 = poseidonHash(1, sign2.S, sign2.e);
 
     const outNote1 = createNote({ address, value: 5 });
     const outNote2 = createNote({ address, value: 20 });
@@ -169,8 +169,8 @@ describe('transact', function () {
       inPublicValue: 0,
       inPublicKey: [account.publicKey, account.publicKey],
       inSignature: [
-        [sign1.R8[0], sign1.R8[1], sign1.S],
-        [sign2.R8[0], sign2.R8[1], sign2.S],
+        [sign1.S, sign1.e],
+        [sign2.S, sign2.e],
       ],
       inValue: [inNote1.value, inNote2.value],
       inSalt: [inNote1.salt, randomHex(31)],
@@ -189,10 +189,7 @@ describe('transact', function () {
     const badSig2 = signPoseidon(inNote2.commitment, badAccount.privateKey);
     const badInSignatureInputs = {
       ...inputs,
-      inSignature: [
-        [sign1.R8[0], sign1.R8[1], sign1.S],
-        [badSig2.R8[0], badSig2.R8[1], badSig2.S],
-      ],
+      inSignature: [[sign1.S, sign1.e][(badSig2.S, badSig2.e)]],
     };
     const badInPathIndices = { ...inputs, inPathIndices: [0, 2] };
     const badInPathElements = {
