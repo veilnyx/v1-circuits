@@ -16,7 +16,7 @@ template MultiTransact(nLevels, nA, nIns, nOuts) {
     signal input inPathElements[nA][nIns][nLevels];
 
     signal input outPublicValue[nA];
-    signal input outAddress[nA][nOuts];
+    signal input outOwner[nA][nOuts];
     signal input outValue[nA][nOuts];
     signal input outSalt[nA][nOuts];
     signal input outCommitment[nA][nOuts];
@@ -38,7 +38,7 @@ template MultiTransact(nLevels, nA, nIns, nOuts) {
         transact[i].inPathElements <== inPathElements[i];
 
         transact[i].outPublicValue <== outPublicValue[i];
-        transact[i].outAddress <== outAddress[i];
+        transact[i].outOwner <== outOwner[i];
         transact[i].outValue <== outValue[i];
         transact[i].outSalt <== outSalt[i];
         transact[i].outCommitment <== outCommitment[i];

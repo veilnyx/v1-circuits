@@ -24,16 +24,16 @@ describe('multiTransact', function () {
   });
 
   it('should multi-transact', async function () {
-    const address = account.address;
+    const owner = account.address;
     const tree = getTree();
     const assetIds = [randomHex(20), randomHex(20)];
     const inNotes1 = [
-      createNote({ address, value: 10, assetId: assetIds[0] }),
-      createNote({ address, value: 20, assetId: assetIds[0] }),
+      createNote({ owner, value: 10, assetId: assetIds[0] }),
+      createNote({ owner, value: 20, assetId: assetIds[0] }),
     ];
     const inNotes2 = [
-      createNote({ address, value: 5, assetId: assetIds[1] }),
-      createNote({ address, value: 20, assetId: assetIds[1] }),
+      createNote({ owner, value: 5, assetId: assetIds[1] }),
+      createNote({ owner, value: 20, assetId: assetIds[1] }),
     ];
 
     tree.bulkInsert([
@@ -48,12 +48,12 @@ describe('multiTransact', function () {
     const nullifiers2 = signs2.map((sign, i) => poseidonHash(i + 2, sign.s, sign.e));
 
     const outNotes1 = [
-      createNote({ address, value: 5, assetId: assetIds[0] }),
-      createNote({ address, value: 20, assetId: assetIds[0] }),
+      createNote({ owner, value: 5, assetId: assetIds[0] }),
+      createNote({ owner, value: 20, assetId: assetIds[0] }),
     ];
     const outNotes2 = [
-      createNote({ address, value: 5, assetId: assetIds[1] }),
-      createNote({ address, value: 20, assetId: assetIds[1] }),
+      createNote({ owner, value: 5, assetId: assetIds[1] }),
+      createNote({ owner, value: 20, assetId: assetIds[1] }),
     ];
 
     const outPublicValue = [5, 0];
@@ -90,7 +90,7 @@ describe('multiTransact', function () {
       ],
       // outs
       outPublicValue,
-      outAddress: [outNotes1.map((n) => n.address), outNotes2.map((n) => n.address)],
+      outOwner: [outNotes1.map((n) => n.owner), outNotes2.map((n) => n.owner)],
       outValue: [outNotes1.map((n) => n.value), outNotes2.map((n) => n.value)],
       outSalt: [outNotes1.map((n) => n.salt), outNotes2.map((n) => n.salt)],
       outCommitment: [outNotes1.map((n) => n.commitment), outNotes2.map((n) => n.commitment)],

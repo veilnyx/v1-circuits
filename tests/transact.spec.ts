@@ -26,8 +26,8 @@ describe('transact', function () {
   it('should transact with correct proofs', async function () {
     const address = account.address;
     const tree = getTree();
-    const inNote1 = createNote({ address, value: 10 });
-    const inNote2 = createNote({ address, value: 20 });
+    const inNote1 = createNote({ owner: address, value: 10 });
+    const inNote2 = createNote({ owner: address, value: 20 });
     tree.bulkInsert([inNote1.commitment, inNote2.commitment]);
 
     const sign1 = signPoseidon(inNote1.commitment, account.privateKey);
@@ -36,8 +36,8 @@ describe('transact', function () {
     const nullifier1 = poseidonHash(0, sign1.s, sign1.e);
     const nullifier2 = poseidonHash(1, sign2.s, sign2.e);
 
-    const outNote1 = createNote({ address, value: 5 });
-    const outNote2 = createNote({ address, value: 20 });
+    const outNote1 = createNote({ owner: address, value: 5 });
+    const outNote2 = createNote({ owner: address, value: 20 });
     const outPublicValue = 5;
 
     const inputs = {
@@ -57,7 +57,7 @@ describe('transact', function () {
       inPathElements: [tree.path(0).pathElements, tree.path(1).pathElements],
       // outs
       outPublicValue,
-      outAddress: [outNote1.address, outNote2.address],
+      outOwner: [outNote1.owner, outNote2.owner],
       outValue: [outNote1.value, outNote2.value],
       outSalt: [outNote1.salt, outNote2.salt],
       outCommitment: [outNote1.commitment, outNote2.commitment],
@@ -72,8 +72,8 @@ describe('transact', function () {
   it('should fail transact for incorrect note properties', async function () {
     const address = account.address;
     const tree = getTree();
-    const inNote1 = createNote({ address, value: 10 });
-    const inNote2 = createNote({ address, value: 20 });
+    const inNote1 = createNote({ owner: address, value: 10 });
+    const inNote2 = createNote({ owner: address, value: 20 });
     tree.bulkInsert([inNote1.commitment, inNote2.commitment]);
 
     const sign1 = signPoseidon(inNote1.commitment, account.privateKey);
@@ -82,8 +82,8 @@ describe('transact', function () {
     const nullifier1 = poseidonHash(0, sign1.s, sign1.e);
     const nullifier2 = poseidonHash(1, sign2.s, sign2.e);
 
-    const outNote1 = createNote({ address, value: 5 });
-    const outNote2 = createNote({ address, value: 20 });
+    const outNote1 = createNote({ owner: address, value: 5 });
+    const outNote2 = createNote({ owner: address, value: 20 });
     const outPublicValue = 5;
 
     const inputs = {
@@ -103,7 +103,7 @@ describe('transact', function () {
       inPathElements: [tree.path(0).pathElements, tree.path(1).pathElements],
       // outs
       outPublicValue,
-      outAddress: [outNote1.address, outNote2.address],
+      outAddress: [outNote1.owner, outNote2.owner],
       outValue: [outNote1.value, outNote2.value],
       outSalt: [outNote1.salt, outNote2.salt],
       outCommitment: [outNote1.commitment, outNote2.commitment],
@@ -126,7 +126,7 @@ describe('transact', function () {
     const badOutPublicValueInputs = { ...inputs, outPublicValue: 10 };
     const badOutAddressInputs = {
       ...inputs,
-      outAddress: [outNote1.address, poseidonHash(randomHex(32))],
+      outAddress: [outNote1.owner, poseidonHash(randomHex(32))],
     };
     const badOutValue = { ...inputs, outValue: [outNote1.value, randomHex(8)] };
     const badOutSalt = { ...inputs, outSalt: [outNote1.salt, randomHex(31)] };
@@ -148,8 +148,8 @@ describe('transact', function () {
   it('should fail transact for incorrect proofs', async function () {
     const address = account.address;
     const tree = getTree();
-    const inNote1 = createNote({ address, value: 10 });
-    const inNote2 = createNote({ address, value: 20 });
+    const inNote1 = createNote({ owner: address, value: 10 });
+    const inNote2 = createNote({ owner: address, value: 20 });
     tree.bulkInsert([inNote1.commitment, inNote2.commitment, poseidonHash(randomHex(32))]);
 
     const sign1 = signPoseidon(inNote1.commitment, account.privateKey);
@@ -158,8 +158,8 @@ describe('transact', function () {
     const nullifier1 = poseidonHash(0, sign1.s, sign1.e);
     const nullifier2 = poseidonHash(1, sign2.s, sign2.e);
 
-    const outNote1 = createNote({ address, value: 5 });
-    const outNote2 = createNote({ address, value: 20 });
+    const outNote1 = createNote({ owner: address, value: 5 });
+    const outNote2 = createNote({ owner: address, value: 20 });
     const outPublicValue = 5;
 
     const inputs = {
@@ -179,7 +179,7 @@ describe('transact', function () {
       inPathElements: [tree.path(0).pathElements, tree.path(1).pathElements],
       // outs
       outPublicValue,
-      outAddress: [outNote1.address, outNote2.address],
+      outAddress: [outNote1.owner, outNote2.owner],
       outValue: [outNote1.value, outNote2.value],
       outSalt: [outNote1.salt, outNote2.salt],
       outCommitment: [outNote1.commitment, outNote2.commitment],
