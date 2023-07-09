@@ -29,7 +29,7 @@ export const signPoseidon = (message: BigNumberish, privateKey: BigNumberish) =>
 
   return {
     e: '0x' + sign.e.toString(16),
-    S: '0x' + sign.s.toString(16),
+    s: '0x' + sign.s.toString(16),
   };
 };
 

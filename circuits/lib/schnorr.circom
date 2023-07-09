@@ -16,12 +16,12 @@ template SchnorrPoseidon(){
     //y = (Ax, Ay) = g^x is a point
     signal input Ax;
     signal input Ay; 
-    signal input S; //S = k - xe is apart of our signature
+    signal input s; //s = k - xe is apart of our signature
     signal input e; //e is apart of our signature
 
-    //need to ensure that S is in our subgroup (from eddsa code)
+    //need to ensure that s is in our subgroup (from eddsa code)
     component snum2bits = Num2Bits(253);
-    snum2bits.in <== S;
+    snum2bits.in <== s;
     component compConstant = CompConstant(2736030358979909402780800718157159386076813972158567259200215660948447373041);
     for (var i=0; i<253; i++) {
         snum2bits.out[i] ==> compConstant.in[i];
