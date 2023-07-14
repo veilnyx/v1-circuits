@@ -51,7 +51,6 @@ describe('transact', function () {
         [sign2.s, sign2.e],
       ],
       inValue: [inNote1.value, inNote2.value],
-      inSalt: [inNote1.salt, inNote2.salt],
       inNullifier: [nullifier1, nullifier2],
       inPathIndices: [0, 1],
       inPathElements: [tree.path(0).pathElements, tree.path(1).pathElements],
@@ -59,7 +58,6 @@ describe('transact', function () {
       outPublicValue,
       outOwner: [outNote1.owner, outNote2.owner],
       outValue: [outNote1.value, outNote2.value],
-      outSalt: [outNote1.salt, outNote2.salt],
       outCommitment: [outNote1.commitment, outNote2.commitment],
     };
 
@@ -97,7 +95,6 @@ describe('transact', function () {
         [sign2.s, sign2.e],
       ],
       inValue: [inNote1.value, inNote2.value],
-      inSalt: [inNote1.salt, randomHex(31)],
       inNullifier: [nullifier1, nullifier2],
       inPathIndices: [0, 1],
       inPathElements: [tree.path(0).pathElements, tree.path(1).pathElements],
@@ -105,7 +102,6 @@ describe('transact', function () {
       outPublicValue,
       outAddress: [outNote1.owner, outNote2.owner],
       outValue: [outNote1.value, outNote2.value],
-      outSalt: [outNote1.salt, outNote2.salt],
       outCommitment: [outNote1.commitment, outNote2.commitment],
     };
 
@@ -129,7 +125,6 @@ describe('transact', function () {
       outAddress: [outNote1.owner, poseidonHash(randomHex(32))],
     };
     const badOutValue = { ...inputs, outValue: [outNote1.value, randomHex(8)] };
-    const badOutSalt = { ...inputs, outSalt: [outNote1.salt, randomHex(31)] };
     const badOutCommitment = { ...inputs, outCommitment: [outNote1.commitment, randomHex(32)] };
 
     await assert.isRejected(circuit.calculateWitness(badAssetIdInputs, true), Error);
@@ -141,7 +136,6 @@ describe('transact', function () {
     await assert.isRejected(circuit.calculateWitness(badOutPublicValueInputs, true), Error);
     await assert.isRejected(circuit.calculateWitness(badOutAddressInputs, true), Error);
     await assert.isRejected(circuit.calculateWitness(badOutValue, true), Error);
-    await assert.isRejected(circuit.calculateWitness(badOutSalt, true), Error);
     await assert.isRejected(circuit.calculateWitness(badOutCommitment, true), Error);
   });
 
@@ -173,7 +167,6 @@ describe('transact', function () {
         [sign2.s, sign2.e],
       ],
       inValue: [inNote1.value, inNote2.value],
-      inSalt: [inNote1.salt, randomHex(31)],
       inNullifier: [nullifier1, nullifier2],
       inPathIndices: [0, 1],
       inPathElements: [tree.path(0).pathElements, tree.path(1).pathElements],
@@ -181,7 +174,6 @@ describe('transact', function () {
       outPublicValue,
       outAddress: [outNote1.owner, outNote2.owner],
       outValue: [outNote1.value, outNote2.value],
-      outSalt: [outNote1.salt, outNote2.salt],
       outCommitment: [outNote1.commitment, outNote2.commitment],
     };
 

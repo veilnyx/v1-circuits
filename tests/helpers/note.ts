@@ -12,8 +12,7 @@ export const createNote = ({
 }) => {
   assetId = BigNumber.from(assetId).toHexString();
   value = BigNumber.from(value).toHexString();
-  const salt = randomHex(31);
-  const commitment = poseidonHash(assetId, owner, value, salt);
+  const commitment = poseidonHash(assetId, owner, value);
 
-  return { owner, assetId, value, salt, commitment };
+  return { owner, assetId, value, commitment };
 };

@@ -78,7 +78,6 @@ describe('multiTransact', function () {
         ],
       ],
       inValue: [inNotes1.map((n) => n.value), inNotes2.map((n) => n.value)],
-      inSalt: [inNotes1.map((n) => n.salt), inNotes2.map((n) => n.salt)],
       inNullifier: [nullifiers1, nullifiers2],
       inPathIndices: [
         [0, 1],
@@ -92,7 +91,6 @@ describe('multiTransact', function () {
       outPublicValue,
       outOwner: [outNotes1.map((n) => n.owner), outNotes2.map((n) => n.owner)],
       outValue: [outNotes1.map((n) => n.value), outNotes2.map((n) => n.value)],
-      outSalt: [outNotes1.map((n) => n.salt), outNotes2.map((n) => n.salt)],
       outCommitment: [outNotes1.map((n) => n.commitment), outNotes2.map((n) => n.commitment)],
       dataHash: poseidonHash(randomHex(32)),
     };

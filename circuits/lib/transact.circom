@@ -22,15 +22,17 @@ include "./ownershipProof.circom";
 // Commitment, h_N = H(j, v, a, r)  where, r = random salt
 // Nullifier, h_f = H(i, sign) where, i = index, sign = schnorr signature
 
+//@todo hide private-able assetIds
+//@todo add nft support
+
 template Transact(nLevels, nIns, nOuts) {
     signal input root;
     signal input assetId;
     
     signal input inPublicValue;
-    signal input inPublicKey[nIns][2]; //@todo Do we really need `nIns` public keys?
+    signal input inPublicKey[nIns][2]; 
     signal input inSignature[nIns][2];
     signal input inValue[nIns];
-    signal input inSalt[nIns];
     signal input inNullifier[nIns];
     signal input inPathIndices[nIns];
     signal input inPathElements[nIns][nLevels];
@@ -38,7 +40,6 @@ template Transact(nLevels, nIns, nOuts) {
     signal input outPublicValue;
     signal input outOwner[nOuts];
     signal input outValue[nOuts];
-    signal input outSalt[nOuts];
     signal input outCommitment[nOuts];
 
     component inOwner[nIns];
@@ -53,7 +54,6 @@ template Transact(nLevels, nIns, nOuts) {
         inCommitmentHasher[i].owner <== inOwner[i].out;
         inCommitmentHasher[i].assetId <== assetId;
         inCommitmentHasher[i].value <== inValue[i];
-        inCommitmentHasher[i].salt <== inSalt[i];
     }
 
     component inNullifierHasher[nIns];
@@ -93,7 +93,6 @@ template Transact(nLevels, nIns, nOuts) {
         outCommitmentHasher[i].owner <== outOwner[i];
         outCommitmentHasher[i].assetId <== assetId;
         outCommitmentHasher[i].value <== outValue[i];
-        outCommitmentHasher[i].salt <== outSalt[i];
         outCommitmentHasher[i].out === outCommitment[i];
     }
 

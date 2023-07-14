@@ -6,14 +6,12 @@ template Commitment() {
     signal input assetId;
     signal input owner;
     signal input value;
-    signal input salt;
     signal output out;
 
-    component hasher = Poseidon(4);
+    component hasher = Poseidon(3);
     hasher.inputs[0] <== assetId;
     hasher.inputs[1] <== owner;
     hasher.inputs[2] <== value;
-    hasher.inputs[3] <== salt;
 
     out <== hasher.out;
 }
