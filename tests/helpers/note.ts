@@ -1,5 +1,5 @@
 import { BigNumber, BigNumberish } from 'ethers';
-import { poseidonHash, randomHex } from '.';
+import { poseidonHash } from '.';
 
 export const createNote = ({
   value,
