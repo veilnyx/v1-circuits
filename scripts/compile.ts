@@ -52,7 +52,7 @@ const main = async () => {
   compiler.generateKeys({ r1cs, pTauPath, out: outZKey });
 
   const outSol = `${outDir}/Verifier${capitalize(name)}.sol`;
-  compiler.ejectSolidityVerifier({ zKey: outZKey, out: outSol });
+  await compiler.ejectSolidityVerifier({ zKey: outZKey, out: outSol });
 };
 
 main()

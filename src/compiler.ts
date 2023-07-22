@@ -33,8 +33,13 @@ class Compiler {
     );
   }
 
-  ejectSolidityVerifier({ zKey, out }: { zKey: string; out: string }) {
+  async ejectSolidityVerifier({ zKey, out }: { zKey: string; out: string }) {
     shell.exec(`snarkjs zkey export solidityverifier ${zKey} ${out}`);
+    // Change contract name
+    const contractName = out.split('/').pop()?.split('.sol')[0] as string;
+    const data = await fsPromises.readFile(out, 'utf8');
+    const newData = data.replace('Groth16Verifier', contractName);
+    await fsPromises.writeFile(out, newData, 'utf8');
   }
 }
 
