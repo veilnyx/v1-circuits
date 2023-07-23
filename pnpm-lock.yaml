@@ -27,6 +27,9 @@ devDependencies:
   '@typescript-eslint/parser':
     specifier: ^5.48.2
     version: 5.48.2(eslint@8.32.0)(typescript@5.1.3)
+  '@zkfi-tech/v1-sdk':
+    specifier: ^0.1.2
+    version: link:../v1-sdk
   chai:
     specifier: ^4.3.7
     version: 4.3.7
