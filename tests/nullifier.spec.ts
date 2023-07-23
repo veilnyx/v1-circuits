@@ -1,11 +1,5 @@
-import {
-  expectEqFe,
-  getCircuit,
-  poseidonHash,
-  randomAccount,
-  randomHex,
-  signPoseidon,
-} from './helpers';
+import { Account } from '@zkfi-tech/v1-sdk/src';
+import { expectEqFe, getCircuit, poseidonHash, randomAccount } from './helpers';
 
 describe('nullifier', function () {
   this.timeout(8000);
@@ -13,17 +7,16 @@ describe('nullifier', function () {
   it('correctly calculates nullifier', async function () {
     const circuit = await getCircuit('nullifier');
 
-    const account = randomAccount();
-    const commitment = poseidonHash(randomHex(32));
-    const sign = signPoseidon(commitment, account.privateKey);
+    const account = Account.random();
+    const viewKey = account.viewer.privateKey;
     const pathIndices = 5;
 
     const inputs = {
       pathIndices: pathIndices,
-      signature: [sign.s, sign.e],
+      viewKey,
     };
 
-    const nullifier = poseidonHash(pathIndices, sign.s, sign.e);
+    const nullifier = poseidonHash(pathIndices, viewKey);
 
     const witness = await circuit.calculateWitness(inputs);
 

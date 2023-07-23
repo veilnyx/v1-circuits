@@ -1,3 +1,4 @@
+import { Account, Fp } from '@zkfi-tech/v1-sdk/src';
 import { assert } from 'chai';
 import { BigNumber } from 'ethers';
 import { MerkleTree } from 'fixed-merkle-tree';
@@ -17,24 +18,33 @@ describe('transact', function () {
 
   let circuit;
   let account;
+  let publicKey;
+  let address;
+  let viewKey;
+  let spendKey;
 
   before(async function () {
     circuit = await getCircuit('transact');
-    account = randomAccount();
+    account = Account.random();
+    const entropy = Fp.random(32);
+    const xData = account.generateStealthData(entropy);
+    publicKey = xData.publicKey.toArray();
+    address = xData.address;
+    spendKey = account.deriveStealthSigner(xData).privateKey;
+    viewKey = account.viewer.privateKey;
   });
 
   it('should transact with correct proofs', async function () {
-    const address = account.address;
     const tree = getTree();
     const inNote1 = createNote({ owner: address, value: 10 });
     const inNote2 = createNote({ owner: address, value: 20 });
     tree.bulkInsert([inNote1.commitment, inNote2.commitment]);
 
-    const sign1 = signPoseidon(inNote1.commitment, account.privateKey);
-    const sign2 = signPoseidon(inNote2.commitment, account.privateKey);
+    const sign1 = signPoseidon(inNote1.commitment, spendKey);
+    const sign2 = signPoseidon(inNote2.commitment, spendKey);
 
-    const nullifier1 = poseidonHash(0, sign1.s, sign1.e);
-    const nullifier2 = poseidonHash(1, sign2.s, sign2.e);
+    const nullifier1 = poseidonHash(0, viewKey);
+    const nullifier2 = poseidonHash(1, viewKey);
 
     const outNote1 = createNote({ owner: address, value: 5 });
     const outNote2 = createNote({ owner: address, value: 20 });
@@ -44,8 +54,9 @@ describe('transact', function () {
       // ins
       root: BigNumber.from(tree.root).toHexString(),
       assetId: inNote1.assetId,
+      viewKey,
       inPublicValue: 0,
-      inPublicKey: [account.publicKey, account.publicKey],
+      inPublicKey: [publicKey, publicKey],
       inSignature: [
         [sign1.s, sign1.e],
         [sign2.s, sign2.e],
@@ -68,17 +79,16 @@ describe('transact', function () {
   });
 
   it('should transact zero-value note skipping inclusion check', async function () {
-    const address = account.address;
     const tree = getTree();
     const inNote1 = createNote({ owner: address, value: 10 });
     const inNote2 = createNote({ owner: address, value: 0 });
     tree.insert(inNote1.commitment);
 
-    const sign1 = signPoseidon(inNote1.commitment, account.privateKey);
-    const sign2 = signPoseidon(inNote2.commitment, account.privateKey);
+    const sign1 = signPoseidon(inNote1.commitment, spendKey);
+    const sign2 = signPoseidon(inNote2.commitment, spendKey);
 
-    const nullifier1 = poseidonHash(0, sign1.s, sign1.e);
-    const nullifier2 = poseidonHash(0, sign2.s, sign2.e);
+    const nullifier1 = poseidonHash(0, viewKey);
+    const nullifier2 = poseidonHash(0, viewKey);
 
     const outNote1 = createNote({ owner: address, value: 2 });
     const outNote2 = createNote({ owner: address, value: 7 });
@@ -88,8 +98,9 @@ describe('transact', function () {
       // ins
       root: BigNumber.from(tree.root).toHexString(),
       assetId: inNote1.assetId,
+      viewKey,
       inPublicValue: 0,
-      inPublicKey: [account.publicKey, account.publicKey],
+      inPublicKey: [publicKey, publicKey],
       inSignature: [
         [sign1.s, sign1.e],
         [sign2.s, sign2.e],
@@ -118,11 +129,11 @@ describe('transact', function () {
     const inNote2 = createNote({ owner: address, value: 20 });
     tree.bulkInsert([inNote1.commitment, inNote2.commitment]);
 
-    const sign1 = signPoseidon(inNote1.commitment, account.privateKey);
-    const sign2 = signPoseidon(inNote2.commitment, account.privateKey);
+    const sign1 = signPoseidon(inNote1.commitment, spendKey);
+    const sign2 = signPoseidon(inNote2.commitment, spendKey);
 
-    const nullifier1 = poseidonHash(0, sign1.s, sign1.e);
-    const nullifier2 = poseidonHash(1, sign2.s, sign2.e);
+    const nullifier1 = poseidonHash(0, viewKey);
+    const nullifier2 = poseidonHash(1, viewKey);
 
     const outNote1 = createNote({ owner: address, value: 5 });
     const outNote2 = createNote({ owner: address, value: 20 });
@@ -132,8 +143,9 @@ describe('transact', function () {
       // ins
       root: BigNumber.from(tree.root).toHexString(),
       assetId: inNote1.assetId,
+      viewKey,
       inPublicValue: 0,
-      inPublicKey: [account.publicKey, account.publicKey],
+      inPublicKey: [publicKey, publicKey],
       inSignature: [
         [sign1.s, sign1.e],
         [sign2.s, sign2.e],
@@ -151,11 +163,11 @@ describe('transact', function () {
 
     const badAccount = randomAccount();
     const badAssetIdInputs = { ...inputs, assetId: randomHex(20) };
-    const badInSaltInputs = { ...inputs, inPublicKey: [account.publicKey, randomHex(31)] };
+    const badInSaltInputs = { ...inputs, inPublicKey: [publicKey, randomHex(31)] };
     const badInValueInputs = { ...inputs, inValue: [inNote1.value, randomHex(8)] };
     const badInPublicKeyInputs = {
       ...inputs,
-      inPublicKey: [account.publicKey, badAccount.publicKey],
+      inPublicKey: [publicKey, badAccount.publicKey],
     };
     const badInNullifierInputs = {
       ...inputs,
@@ -190,11 +202,11 @@ describe('transact', function () {
     const inNote2 = createNote({ owner: address, value: 20 });
     tree.bulkInsert([inNote1.commitment, inNote2.commitment, poseidonHash(randomHex(32))]);
 
-    const sign1 = signPoseidon(inNote1.commitment, account.privateKey);
-    const sign2 = signPoseidon(inNote2.commitment, account.privateKey);
+    const sign1 = signPoseidon(inNote1.commitment, spendKey);
+    const sign2 = signPoseidon(inNote2.commitment, spendKey);
 
-    const nullifier1 = poseidonHash(0, sign1.s, sign1.e);
-    const nullifier2 = poseidonHash(1, sign2.s, sign2.e);
+    const nullifier1 = poseidonHash(0, viewKey);
+    const nullifier2 = poseidonHash(1, viewKey);
 
     const outNote1 = createNote({ owner: address, value: 5 });
     const outNote2 = createNote({ owner: address, value: 20 });
@@ -204,8 +216,9 @@ describe('transact', function () {
       // ins
       root: BigNumber.from(tree.root).toHexString(),
       assetId: inNote1.assetId,
+      viewKey,
       inPublicValue: 0,
-      inPublicKey: [account.publicKey, account.publicKey],
+      inPublicKey: [publicKey, publicKey],
       inSignature: [
         [sign1.s, sign1.e],
         [sign2.s, sign2.e],
