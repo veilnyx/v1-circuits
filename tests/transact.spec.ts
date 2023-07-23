@@ -67,6 +67,50 @@ describe('transact', function () {
     await circuit.checkConstraints(witness);
   });
 
+  it('should transact zero-value note skipping inclusion check', async function () {
+    const address = account.address;
+    const tree = getTree();
+    const inNote1 = createNote({ owner: address, value: 10 });
+    const inNote2 = createNote({ owner: address, value: 0 });
+    tree.insert(inNote1.commitment);
+
+    const sign1 = signPoseidon(inNote1.commitment, account.privateKey);
+    const sign2 = signPoseidon(inNote2.commitment, account.privateKey);
+
+    const nullifier1 = poseidonHash(0, sign1.s, sign1.e);
+    const nullifier2 = poseidonHash(0, sign2.s, sign2.e);
+
+    const outNote1 = createNote({ owner: address, value: 2 });
+    const outNote2 = createNote({ owner: address, value: 7 });
+    const outPublicValue = 1;
+
+    const inputs = {
+      // ins
+      root: BigNumber.from(tree.root).toHexString(),
+      assetId: inNote1.assetId,
+      inPublicValue: 0,
+      inPublicKey: [account.publicKey, account.publicKey],
+      inSignature: [
+        [sign1.s, sign1.e],
+        [sign2.s, sign2.e],
+      ],
+      inValue: [inNote1.value, inNote2.value],
+      inNullifier: [nullifier1, nullifier2],
+      inPathIndices: [0, 0],
+      inPathElements: [tree.path(0).pathElements, Array.from({ length: tree.levels }).fill(0)],
+      // outs
+      outPublicValue,
+      outOwner: [outNote1.owner, outNote2.owner],
+      outValue: [outNote1.value, outNote2.value],
+      outCommitment: [outNote1.commitment, outNote2.commitment],
+    };
+
+    await assert.isFulfilled(circuit.calculateWitness(inputs, true));
+
+    const witness = await circuit.calculateWitness(inputs, true);
+    await circuit.checkConstraints(witness);
+  });
+
   it('should fail transact for incorrect note properties', async function () {
     const address = account.address;
     const tree = getTree();
