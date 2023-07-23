@@ -75,6 +75,8 @@ template Transact(nLevels, nIns, nOuts) {
     component inMerkleProof[nIns];
     for(var i = 0; i < nIns; i++) {
         inMerkleProof[i] = MerkleProof(nLevels);
+        //@todo factor in nft id when supported
+        inMerkleProof[i].enabled <== inValue[i];
         inMerkleProof[i].root <== root;
         inMerkleProof[i].leaf <== inCommitmentHasher[i].out;
         inMerkleProof[i].pathIndices <== inPathIndices[i];
