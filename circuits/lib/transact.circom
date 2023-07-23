@@ -20,40 +20,40 @@ include "./ownershipProof.circom";
 // =============== Note ==================
 // Note, n = { j, v, a }
 // Commitment, h_N = H(j, v, a, r)  where, r = random salt
-// Nullifier, h_f = H(i, sign) where, i = index, sign = eddsa signature
+// Nullifier, h_f = H(i, sign) where, i = index, sign = schnorr signature
+
+//@todo hide private-able assetIds
+//@todo add nft support
 
 template Transact(nLevels, nIns, nOuts) {
     signal input root;
     signal input assetId;
     
     signal input inPublicValue;
-    signal input inPublicKey[nIns][2]; //@todo Do we really need `nIns` public keys?
-    signal input inSignature[nIns][3];
+    signal input inPublicKey[nIns][2]; 
+    signal input inSignature[nIns][2];
     signal input inValue[nIns];
-    signal input inSalt[nIns];
     signal input inNullifier[nIns];
     signal input inPathIndices[nIns];
     signal input inPathElements[nIns][nLevels];
 
     signal input outPublicValue;
-    signal input outAddress[nOuts];
+    signal input outOwner[nOuts];
     signal input outValue[nOuts];
-    signal input outSalt[nOuts];
     signal input outCommitment[nOuts];
 
-    component inAddress[nIns];
+    component inOwner[nIns];
     for(var i = 0; i < nIns; i++) {
-        inAddress[i] = Address();
-        inAddress[i].publicKey <== inPublicKey[i];
+        inOwner[i] = Address();
+        inOwner[i].publicKey <== inPublicKey[i];
     }
 
     component inCommitmentHasher[nIns];
     for(var i = 0; i < nIns; i++) {
         inCommitmentHasher[i] = Commitment();
-        inCommitmentHasher[i].address <== inAddress[i].out;
+        inCommitmentHasher[i].owner <== inOwner[i].out;
         inCommitmentHasher[i].assetId <== assetId;
         inCommitmentHasher[i].value <== inValue[i];
-        inCommitmentHasher[i].salt <== inSalt[i];
     }
 
     component inNullifierHasher[nIns];
@@ -75,6 +75,8 @@ template Transact(nLevels, nIns, nOuts) {
     component inMerkleProof[nIns];
     for(var i = 0; i < nIns; i++) {
         inMerkleProof[i] = MerkleProof(nLevels);
+        //@todo factor in nft id when supported
+        inMerkleProof[i].enabled <== inValue[i];
         inMerkleProof[i].root <== root;
         inMerkleProof[i].leaf <== inCommitmentHasher[i].out;
         inMerkleProof[i].pathIndices <== inPathIndices[i];
@@ -90,10 +92,9 @@ template Transact(nLevels, nIns, nOuts) {
     component outCommitmentHasher[nOuts];
     for(var i = 0; i < nOuts; i++) {
         outCommitmentHasher[i] = Commitment();
-        outCommitmentHasher[i].address <== outAddress[i];
+        outCommitmentHasher[i].owner <== outOwner[i];
         outCommitmentHasher[i].assetId <== assetId;
         outCommitmentHasher[i].value <== outValue[i];
-        outCommitmentHasher[i].salt <== outSalt[i];
         outCommitmentHasher[i].out === outCommitment[i];
     }
 

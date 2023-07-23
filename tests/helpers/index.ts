@@ -1,9 +1,9 @@
 import { assert, expect } from 'chai';
 import { utils, BigNumber, BigNumberish } from 'ethers';
-import { arrayify } from 'ethers/lib/utils';
 //@ts-ignore
-import { poseidon, eddsa } from 'xcircomlib';
+import { poseidon } from 'xcircomlib';
 import { fieldsSize, Fr } from './circuit';
+import { schnorr } from './schnorr';
 
 export * from './circuit';
 export * from './note';
@@ -22,24 +22,25 @@ export const poseidonHash = (...inputs: BigNumberish[]): string => {
 };
 
 export const signPoseidon = (message: BigNumberish, privateKey: BigNumberish) => {
-  const pkBuffer = Buffer.from(arrayify(BigNumber.from(privateKey)));
+  const pkBuffer = BigNumber.from(privateKey).toBigInt();
   const msgBuffer = BigNumber.from(message).mod(fieldsSize).toBigInt();
-  const sign = eddsa.signPoseidon(pkBuffer, msgBuffer);
+  const k = randomHex(31);
+  const sign = schnorr.signPoseidon(pkBuffer, msgBuffer, k);
 
   return {
-    R8: ['0x' + sign.R8[0].toString(16), '0x' + sign.R8[1].toString(16)],
-    S: '0x' + sign.S.toString(16),
+    e: '0x' + sign.e.toString(16),
+    s: '0x' + sign.s.toString(16),
   };
 };
 
 export const getPublicKeyFromPrivateKey = (privateKey: BigNumberish) => {
-  const pkBuffer = Buffer.from(arrayify(BigNumber.from(privateKey)));
-  const pubKey = eddsa.prv2pub(pkBuffer);
+  const pkBuffer = BigNumber.from(privateKey).toBigInt();
+  const pubKey = schnorr.prv2pub(pkBuffer);
   return ['0x' + pubKey[0].toString(16), '0x' + pubKey[1].toString(16)];
 };
 
 export const randomAccount = () => {
-  const privateKey = poseidonHash(randomHex(32));
+  const privateKey = poseidonHash(randomHex(31));
   const publicKey = getPublicKeyFromPrivateKey(privateKey);
   const address = poseidonHash(publicKey[0], publicKey[1]);
   return { privateKey, publicKey, address };

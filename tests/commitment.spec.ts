@@ -5,12 +5,11 @@ describe('commitment', function () {
     const circuit = await getCircuit('commitment');
     const inputs = {
       assetId: randomHex(20),
-      address: randomHex(31),
+      owner: randomHex(31),
       value: randomHex(8),
-      salt: randomHex(31),
     };
 
-    const commitment = poseidonHash(inputs.assetId, inputs.address, inputs.value, inputs.salt);
+    const commitment = poseidonHash(inputs.assetId, inputs.owner, inputs.value);
     const witness = await circuit.calculateWitness(inputs);
 
     expectEqFe(witness[1], commitment);

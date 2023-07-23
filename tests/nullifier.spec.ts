@@ -20,10 +20,10 @@ describe('nullifier', function () {
 
     const inputs = {
       pathIndices: pathIndices,
-      signature: [sign.R8[0], sign.R8[1], sign.S],
+      signature: [sign.s, sign.e],
     };
 
-    const nullifier = poseidonHash(pathIndices, sign.R8[0], sign.R8[1], sign.S);
+    const nullifier = poseidonHash(pathIndices, sign.s, sign.e);
 
     const witness = await circuit.calculateWitness(inputs);
 

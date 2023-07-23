@@ -1,4 +1,5 @@
 import { assert } from 'chai';
+import { Account, Fp, Note } from '@zkfi-tech/v1-sdk/src';
 import { getCircuit, poseidonHash, randomAccount, randomHex, signPoseidon } from './helpers';
 
 describe('ownershipProof', function () {
@@ -10,6 +11,28 @@ describe('ownershipProof', function () {
   });
 
   it('should verify successfully for correct signature', async function () {
+    const account = Account.random();
+    const note = Note.fromAccount({
+      assetId: Fp.random(20).toHexString(),
+      account,
+      value: Fp.random(20),
+    });
+    const xSigner = account.deriveStealthSigner(note.xData as any);
+    const sign = signPoseidon(note.commitment, xSigner.privateKey);
+
+    const inputs = {
+      commitment: note.commitment,
+      publicKey: xSigner.publicKey.toArray(),
+      signature: [sign.s, sign.e],
+    };
+
+    await assert.isFulfilled(circuit.calculateWitness(inputs, true));
+
+    const witness = await circuit.calculateWitness(inputs);
+    await circuit.checkConstraints(witness);
+  });
+
+  it('should verify successfully for correct signature', async function () {
     const commitment = poseidonHash(randomHex(32));
     const account = randomAccount();
     const sign = signPoseidon(commitment, account.privateKey);
@@ -17,7 +40,7 @@ describe('ownershipProof', function () {
     const inputs = {
       commitment,
       publicKey: account.publicKey,
-      signature: [sign.R8[0], sign.R8[1], sign.S],
+      signature: [sign.s, sign.e],
     };
 
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
@@ -35,7 +58,7 @@ describe('ownershipProof', function () {
     const inputs = {
       commitment,
       publicKey: account.publicKey,
-      signature: [badSign.R8[0], badSign.R8[1], badSign.S],
+      signature: [badSign.s, badSign.e],
     };
 
     await assert.isRejected(circuit.calculateWitness(inputs, true), Error);
@@ -51,13 +74,13 @@ describe('ownershipProof', function () {
     const badCommitmentInputs = {
       commitment: badCommitment,
       publicKey: account.publicKey,
-      signature: [badSign.R8[0], badSign.R8[1], badSign.S],
+      signature: [badSign.s, badSign.e],
     };
 
     const badPublicKeyInputs = {
       commitment,
       publicKey: badAccount.publicKey,
-      signature: [badSign.R8[0], badSign.R8[1], badSign.S],
+      signature: [badSign.s, badSign.e],
     };
 
     await assert.isRejected(circuit.calculateWitness(badCommitmentInputs, true), Error);

@@ -24,16 +24,16 @@ describe('multiTransact', function () {
   });
 
   it('should multi-transact', async function () {
-    const address = account.address;
+    const owner = account.address;
     const tree = getTree();
     const assetIds = [randomHex(20), randomHex(20)];
     const inNotes1 = [
-      createNote({ address, value: 10, assetId: assetIds[0] }),
-      createNote({ address, value: 20, assetId: assetIds[0] }),
+      createNote({ owner, value: 10, assetId: assetIds[0] }),
+      createNote({ owner, value: 20, assetId: assetIds[0] }),
     ];
     const inNotes2 = [
-      createNote({ address, value: 5, assetId: assetIds[1] }),
-      createNote({ address, value: 20, assetId: assetIds[1] }),
+      createNote({ owner, value: 5, assetId: assetIds[1] }),
+      createNote({ owner, value: 20, assetId: assetIds[1] }),
     ];
 
     tree.bulkInsert([
@@ -44,18 +44,16 @@ describe('multiTransact', function () {
     const signs1 = inNotes1.map((note) => signPoseidon(note.commitment, account.privateKey));
     const signs2 = inNotes2.map((note) => signPoseidon(note.commitment, account.privateKey));
 
-    const nullifiers1 = signs1.map((sign, i) => poseidonHash(i, sign.R8[0], sign.R8[1], sign.S));
-    const nullifiers2 = signs2.map((sign, i) =>
-      poseidonHash(i + 2, sign.R8[0], sign.R8[1], sign.S),
-    );
+    const nullifiers1 = signs1.map((sign, i) => poseidonHash(i, sign.s, sign.e));
+    const nullifiers2 = signs2.map((sign, i) => poseidonHash(i + 2, sign.s, sign.e));
 
     const outNotes1 = [
-      createNote({ address, value: 5, assetId: assetIds[0] }),
-      createNote({ address, value: 20, assetId: assetIds[0] }),
+      createNote({ owner, value: 5, assetId: assetIds[0] }),
+      createNote({ owner, value: 20, assetId: assetIds[0] }),
     ];
     const outNotes2 = [
-      createNote({ address, value: 5, assetId: assetIds[1] }),
-      createNote({ address, value: 20, assetId: assetIds[1] }),
+      createNote({ owner, value: 5, assetId: assetIds[1] }),
+      createNote({ owner, value: 20, assetId: assetIds[1] }),
     ];
 
     const outPublicValue = [5, 0];
@@ -71,16 +69,15 @@ describe('multiTransact', function () {
       ],
       inSignature: [
         [
-          [signs1[0].R8[0], signs1[0].R8[1], signs1[0].S],
-          [signs1[1].R8[0], signs1[1].R8[1], signs1[1].S],
+          [signs1[0].s, signs1[0].e],
+          [signs1[1].s, signs1[1].e],
         ],
         [
-          [signs2[0].R8[0], signs2[0].R8[1], signs2[0].S],
-          [signs2[1].R8[0], signs2[1].R8[1], signs2[1].S],
+          [signs2[0].s, signs2[0].e],
+          [signs2[1].s, signs2[1].e],
         ],
       ],
       inValue: [inNotes1.map((n) => n.value), inNotes2.map((n) => n.value)],
-      inSalt: [inNotes1.map((n) => n.salt), inNotes2.map((n) => n.salt)],
       inNullifier: [nullifiers1, nullifiers2],
       inPathIndices: [
         [0, 1],
@@ -92,9 +89,8 @@ describe('multiTransact', function () {
       ],
       // outs
       outPublicValue,
-      outAddress: [outNotes1.map((n) => n.address), outNotes2.map((n) => n.address)],
+      outOwner: [outNotes1.map((n) => n.owner), outNotes2.map((n) => n.owner)],
       outValue: [outNotes1.map((n) => n.value), outNotes2.map((n) => n.value)],
-      outSalt: [outNotes1.map((n) => n.salt), outNotes2.map((n) => n.salt)],
       outCommitment: [outNotes1.map((n) => n.commitment), outNotes2.map((n) => n.commitment)],
       dataHash: poseidonHash(randomHex(32)),
     };

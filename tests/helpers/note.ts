@@ -1,19 +1,18 @@
 import { BigNumber, BigNumberish } from 'ethers';
-import { poseidonHash, randomHex } from '.';
+import { poseidonHash } from '.';
 
 export const createNote = ({
   value,
-  address,
+  owner,
   assetId = 1,
 }: {
   value: BigNumberish;
-  address: string;
+  owner: string;
   assetId?: BigNumberish;
 }) => {
   assetId = BigNumber.from(assetId).toHexString();
   value = BigNumber.from(value).toHexString();
-  const salt = randomHex(31);
-  const commitment = poseidonHash(assetId, address, value, salt);
+  const commitment = poseidonHash(assetId, owner, value);
 
-  return { address, assetId, value, salt, commitment };
+  return { owner, assetId, value, commitment };
 };
