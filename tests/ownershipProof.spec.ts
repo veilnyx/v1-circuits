@@ -12,9 +12,8 @@ describe('ownershipProof', function () {
 
   it('should verify successfully for correct signature', async function () {
     const account = Account.random();
-    const note = Note.fromAccount({
+    const note = Note.fromAccount(account, {
       assetId: Fp.random(20).toHexString(),
-      account,
       value: Fp.random(20),
     });
     const xSigner = account.deriveStealthSigner(note.xData as any);
