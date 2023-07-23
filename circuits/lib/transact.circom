@@ -66,6 +66,7 @@ template Transact(nLevels, nIns, nOuts) {
     for(var i = 0; i < nIns; i++) {
         inNullifierHasher[i] = Nullifier();
         inNullifierHasher[i].pathIndices <== inPathIndices[i];
+        inNullifierHasher[i].commitment <== inCommitmentHasher[i].out;
         inNullifierHasher[i].viewKey <== viewKey;
         inNullifierHasher[i].out === inNullifier[i];
     }

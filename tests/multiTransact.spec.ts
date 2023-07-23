@@ -48,8 +48,8 @@ describe('multiTransact', function () {
     const signs1 = inNotes1.map((note) => signPoseidon(note.commitment, spendKey));
     const signs2 = inNotes2.map((note) => signPoseidon(note.commitment, spendKey));
 
-    const nullifiers1 = inNotes1.map((_, i) => poseidonHash(i, viewKey));
-    const nullifiers2 = inNotes2.map((_, i) => poseidonHash(i + 2, viewKey));
+    const nullifiers1 = inNotes1.map((n, i) => poseidonHash(i, n.commitment, viewKey));
+    const nullifiers2 = inNotes2.map((n, i) => poseidonHash(i + 2, n.commitment, viewKey));
 
     const outNotes1 = [
       createNote({ owner, value: 5, assetId: assetIds[0] }),

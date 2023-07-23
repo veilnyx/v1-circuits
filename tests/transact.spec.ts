@@ -43,8 +43,8 @@ describe('transact', function () {
     const sign1 = signPoseidon(inNote1.commitment, spendKey);
     const sign2 = signPoseidon(inNote2.commitment, spendKey);
 
-    const nullifier1 = poseidonHash(0, viewKey);
-    const nullifier2 = poseidonHash(1, viewKey);
+    const nullifier1 = poseidonHash(0, inNote1.commitment, viewKey);
+    const nullifier2 = poseidonHash(1, inNote2.commitment, viewKey);
 
     const outNote1 = createNote({ owner: address, value: 5 });
     const outNote2 = createNote({ owner: address, value: 20 });
@@ -87,8 +87,8 @@ describe('transact', function () {
     const sign1 = signPoseidon(inNote1.commitment, spendKey);
     const sign2 = signPoseidon(inNote2.commitment, spendKey);
 
-    const nullifier1 = poseidonHash(0, viewKey);
-    const nullifier2 = poseidonHash(0, viewKey);
+    const nullifier1 = poseidonHash(0, inNote1.commitment, viewKey);
+    const nullifier2 = poseidonHash(0, inNote2.commitment, viewKey);
 
     const outNote1 = createNote({ owner: address, value: 2 });
     const outNote2 = createNote({ owner: address, value: 7 });
@@ -116,7 +116,7 @@ describe('transact', function () {
       outCommitment: [outNote1.commitment, outNote2.commitment],
     };
 
-    await assert.isFulfilled(circuit.calculateWitness(inputs, true));
+    // await assert.isFulfilled(circuit.calculateWitness(inputs, true));
 
     const witness = await circuit.calculateWitness(inputs, true);
     await circuit.checkConstraints(witness);
@@ -132,8 +132,8 @@ describe('transact', function () {
     const sign1 = signPoseidon(inNote1.commitment, spendKey);
     const sign2 = signPoseidon(inNote2.commitment, spendKey);
 
-    const nullifier1 = poseidonHash(0, viewKey);
-    const nullifier2 = poseidonHash(1, viewKey);
+    const nullifier1 = poseidonHash(0, inNote1.commitment, viewKey);
+    const nullifier2 = poseidonHash(1, inNote2.commitment, viewKey);
 
     const outNote1 = createNote({ owner: address, value: 5 });
     const outNote2 = createNote({ owner: address, value: 20 });
@@ -205,8 +205,8 @@ describe('transact', function () {
     const sign1 = signPoseidon(inNote1.commitment, spendKey);
     const sign2 = signPoseidon(inNote2.commitment, spendKey);
 
-    const nullifier1 = poseidonHash(0, viewKey);
-    const nullifier2 = poseidonHash(1, viewKey);
+    const nullifier1 = poseidonHash(0, inNote1.commitment, viewKey);
+    const nullifier2 = poseidonHash(1, inNote2.commitment, viewKey);
 
     const outNote1 = createNote({ owner: address, value: 5 });
     const outNote2 = createNote({ owner: address, value: 20 });
