@@ -1,14 +1,8 @@
+import { Account, Fp } from '@zkfi-tech/v1-sdk/src';
 import { assert } from 'chai';
 import { BigNumber } from 'ethers';
 import { MerkleTree } from 'fixed-merkle-tree';
-import {
-  createNote,
-  getCircuit,
-  poseidonHash,
-  randomAccount,
-  randomHex,
-  signPoseidon,
-} from './helpers';
+import { createNote, getCircuit, poseidonHash, randomHex, signPoseidon } from './helpers';
 
 const getTree = () => new MerkleTree(20, [], { hashFunction: poseidonHash });
 
@@ -17,14 +11,24 @@ describe('multiTransact', function () {
 
   let circuit;
   let account;
+  let publicKey;
+  let address;
+  let viewKey;
+  let spendKey;
 
   before(async function () {
     circuit = await getCircuit('multiTransact');
-    account = randomAccount();
+    account = Account.random();
+    const entropy = Fp.random(32);
+    const xData = account.generateStealthData(entropy);
+    publicKey = xData.publicKey.toArray();
+    address = xData.address;
+    spendKey = account.deriveStealthSigner(xData).privateKey;
+    viewKey = account.viewer.privateKey;
   });
 
   it('should multi-transact', async function () {
-    const owner = account.address;
+    const owner = address;
     const tree = getTree();
     const assetIds = [randomHex(20), randomHex(20)];
     const inNotes1 = [
@@ -41,11 +45,11 @@ describe('multiTransact', function () {
       ...inNotes2.map((note) => note.commitment),
     ]);
 
-    const signs1 = inNotes1.map((note) => signPoseidon(note.commitment, account.privateKey));
-    const signs2 = inNotes2.map((note) => signPoseidon(note.commitment, account.privateKey));
+    const signs1 = inNotes1.map((note) => signPoseidon(note.commitment, spendKey));
+    const signs2 = inNotes2.map((note) => signPoseidon(note.commitment, spendKey));
 
-    const nullifiers1 = signs1.map((sign, i) => poseidonHash(i, sign.s, sign.e));
-    const nullifiers2 = signs2.map((sign, i) => poseidonHash(i + 2, sign.s, sign.e));
+    const nullifiers1 = inNotes1.map((n, i) => poseidonHash(i, n.commitment, viewKey));
+    const nullifiers2 = inNotes2.map((n, i) => poseidonHash(i + 2, n.commitment, viewKey));
 
     const outNotes1 = [
       createNote({ owner, value: 5, assetId: assetIds[0] }),
@@ -61,11 +65,12 @@ describe('multiTransact', function () {
     const inputs = {
       // ins
       root: BigNumber.from(tree.root).toHexString(),
+      viewKey,
       assetId: assetIds,
       inPublicValue: [0, 0],
       inPublicKey: [
-        [account.publicKey, account.publicKey],
-        [account.publicKey, account.publicKey],
+        [publicKey, publicKey],
+        [publicKey, publicKey],
       ],
       inSignature: [
         [

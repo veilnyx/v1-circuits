@@ -42,8 +42,10 @@ export const getPublicKeyFromPrivateKey = (privateKey: BigNumberish) => {
 export const randomAccount = () => {
   const privateKey = poseidonHash(randomHex(31));
   const publicKey = getPublicKeyFromPrivateKey(privateKey);
-  const address = poseidonHash(publicKey[0], publicKey[1]);
-  return { privateKey, publicKey, address };
+  const viewKey = poseidonHash(randomHex(31));
+  const stealthSeed = poseidonHash(privateKey, viewKey);
+  const address = poseidonHash(publicKey[0], publicKey[1], stealthSeed);
+  return { privateKey, publicKey, address, stealthSeed, viewKey };
 };
 
 export const isEqFe = (a: BigNumberish, b: BigNumberish) => Fr.eq(Fr.e(a), Fr.e(b));

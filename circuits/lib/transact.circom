@@ -1,7 +1,8 @@
 pragma circom 2.1.5;
 
 include "./zeroSum.circom";
-include "./address.circom";
+include "./stealthAddress.circom";
+include "./stealthSeed.circom";
 include "./limitRange.circom";
 include "./commitment.circom";
 include "./nullifier.circom";
@@ -27,6 +28,7 @@ include "./ownershipProof.circom";
 
 template Transact(nLevels, nIns, nOuts) {
     signal input root;
+    signal input viewKey;
     signal input assetId;
     
     signal input inPublicValue;
@@ -42,10 +44,14 @@ template Transact(nLevels, nIns, nOuts) {
     signal input outValue[nOuts];
     signal input outCommitment[nOuts];
 
+    component stealthSeed = StealthSeed();
+    stealthSeed.viewKey <== viewKey;
+
     component inOwner[nIns];
     for(var i = 0; i < nIns; i++) {
-        inOwner[i] = Address();
+        inOwner[i] = StealthAddress();
         inOwner[i].publicKey <== inPublicKey[i];
+        inOwner[i].stealthSeed <== stealthSeed.out;
     }
 
     component inCommitmentHasher[nIns];
@@ -60,7 +66,8 @@ template Transact(nLevels, nIns, nOuts) {
     for(var i = 0; i < nIns; i++) {
         inNullifierHasher[i] = Nullifier();
         inNullifierHasher[i].pathIndices <== inPathIndices[i];
-        inNullifierHasher[i].signature <== inSignature[i];
+        inNullifierHasher[i].commitment <== inCommitmentHasher[i].out;
+        inNullifierHasher[i].viewKey <== viewKey;
         inNullifierHasher[i].out === inNullifier[i];
     }
 

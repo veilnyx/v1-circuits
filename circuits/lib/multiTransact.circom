@@ -4,6 +4,7 @@ include "./transact.circom";
 
 template MultiTransact(nLevels, nA, nIns, nOuts) {
     signal input root;
+    signal input viewKey;
     signal input assetId[nA];
 
     signal input inPublicValue[nA];
@@ -25,6 +26,7 @@ template MultiTransact(nLevels, nA, nIns, nOuts) {
     for (var i = 0; i < nA; i++) {
         transact[i] = Transact(nLevels, nIns, nOuts);
         transact[i].root <== root;
+        transact[i].viewKey <== viewKey;
         transact[i].assetId <== assetId[i];
         transact[i].inPublicValue <== inPublicValue[i];
         transact[i].inPublicKey <== inPublicKey[i];
