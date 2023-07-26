@@ -16,12 +16,12 @@ describe('ownershipProof', function () {
       assetId: Fp.random(20).toHexString(),
       value: Fp.random(20),
     });
-    const xSigner = account.deriveStealthSigner(note.xData as any);
-    const sign = signPoseidon(note.commitment, xSigner.privateKey);
+    // const xSigner = account.deriveStealthSigner(note.xData as any);
+    const sign = await account.sign(note.commitment); // signPoseidon(note.commitment, ac);
 
     const inputs = {
       commitment: note.commitment,
-      publicKey: xSigner.publicKey.toArray(),
+      publicKey: account.signer.publicKey.toArray(),
       signature: [sign.s, sign.e],
     };
 

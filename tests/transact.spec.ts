@@ -19,25 +19,25 @@ describe('transact', function () {
   let circuit;
   let account;
   let publicKey;
-  let address;
+  let owner;
   let viewKey;
   let spendKey;
+  let blinding;
 
   before(async function () {
+    blinding = Fp.random(32).toHexString();
     circuit = await getCircuit('transact');
     account = Account.random();
-    const entropy = Fp.random(32);
-    const xData = account.generateStealthData(entropy);
-    publicKey = xData.publicKey.toArray();
-    address = xData.address;
-    spendKey = account.deriveStealthSigner(xData).privateKey;
+    spendKey = account.signer.privateKey;
     viewKey = account.viewer.privateKey;
+    publicKey = account.signer.publicKey.toArray();
+    owner = account.getStealthAddress(blinding);
   });
 
   it('should transact with correct proofs', async function () {
     const tree = getTree();
-    const inNote1 = createNote({ owner: address, value: 10 });
-    const inNote2 = createNote({ owner: address, value: 20 });
+    const inNote1 = createNote({ owner: owner, value: 10 });
+    const inNote2 = createNote({ owner: owner, value: 20 });
     tree.bulkInsert([inNote1.commitment, inNote2.commitment]);
 
     const sign1 = signPoseidon(inNote1.commitment, spendKey);
@@ -46,8 +46,8 @@ describe('transact', function () {
     const nullifier1 = poseidonHash(0, inNote1.commitment, viewKey);
     const nullifier2 = poseidonHash(1, inNote2.commitment, viewKey);
 
-    const outNote1 = createNote({ owner: address, value: 5 });
-    const outNote2 = createNote({ owner: address, value: 20 });
+    const outNote1 = createNote({ owner: owner, value: 5 });
+    const outNote2 = createNote({ owner: owner, value: 20 });
     const outPublicValue = 5;
 
     const inputs = {
@@ -62,6 +62,7 @@ describe('transact', function () {
         [sign2.s, sign2.e],
       ],
       inValue: [inNote1.value, inNote2.value],
+      inBlinding: [blinding, blinding],
       inNullifier: [nullifier1, nullifier2],
       inPathIndices: [0, 1],
       inPathElements: [tree.path(0).pathElements, tree.path(1).pathElements],
@@ -80,8 +81,8 @@ describe('transact', function () {
 
   it('should transact zero-value note skipping inclusion check', async function () {
     const tree = getTree();
-    const inNote1 = createNote({ owner: address, value: 10 });
-    const inNote2 = createNote({ owner: address, value: 0 });
+    const inNote1 = createNote({ owner: owner, value: 10 });
+    const inNote2 = createNote({ owner: owner, value: 0 });
     tree.insert(inNote1.commitment);
 
     const sign1 = signPoseidon(inNote1.commitment, spendKey);
@@ -90,8 +91,8 @@ describe('transact', function () {
     const nullifier1 = poseidonHash(0, inNote1.commitment, viewKey);
     const nullifier2 = poseidonHash(0, inNote2.commitment, viewKey);
 
-    const outNote1 = createNote({ owner: address, value: 2 });
-    const outNote2 = createNote({ owner: address, value: 7 });
+    const outNote1 = createNote({ owner: owner, value: 2 });
+    const outNote2 = createNote({ owner: owner, value: 7 });
     const outPublicValue = 1;
 
     const inputs = {
@@ -106,6 +107,7 @@ describe('transact', function () {
         [sign2.s, sign2.e],
       ],
       inValue: [inNote1.value, inNote2.value],
+      inBlinding: [blinding, blinding],
       inNullifier: [nullifier1, nullifier2],
       inPathIndices: [0, 0],
       inPathElements: [tree.path(0).pathElements, Array.from({ length: tree.levels }).fill(0)],
@@ -151,6 +153,7 @@ describe('transact', function () {
         [sign2.s, sign2.e],
       ],
       inValue: [inNote1.value, inNote2.value],
+      inBlinding: [blinding, blinding],
       inNullifier: [nullifier1, nullifier2],
       inPathIndices: [0, 1],
       inPathElements: [tree.path(0).pathElements, tree.path(1).pathElements],
@@ -224,6 +227,7 @@ describe('transact', function () {
         [sign2.s, sign2.e],
       ],
       inValue: [inNote1.value, inNote2.value],
+      inBlinding: [blinding, blinding],
       inNullifier: [nullifier1, nullifier2],
       inPathIndices: [0, 1],
       inPathElements: [tree.path(0).pathElements, tree.path(1).pathElements],
