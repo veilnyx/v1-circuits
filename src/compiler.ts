@@ -35,10 +35,18 @@ class Compiler {
 
   async ejectSolidityVerifier({ zKey, out }: { zKey: string; out: string }) {
     shell.exec(`snarkjs zkey export solidityverifier ${zKey} ${out}`);
-    // Change contract name
+
     const contractName = out.split('/').pop()?.split('.sol')[0] as string;
     const data = await fsPromises.readFile(out, 'utf8');
-    const newData = data.replace('Groth16Verifier', contractName);
+
+    const newData = data
+      // Rename ejected contract
+      .replace('Groth16Verifier', contractName)
+      // Replace `gas()` with `not(0)` (to support EIP-4337 tx)
+      .replace('sub(gas(), 2000)', `not(0)`)
+      .replace('sub(gas(), 2000)', `not(0)`)
+      .replace('sub(gas(), 2000)', `not(0)`);
+
     await fsPromises.writeFile(out, newData, 'utf8');
   }
 }
