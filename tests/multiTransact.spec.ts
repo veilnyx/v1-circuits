@@ -12,23 +12,23 @@ describe('multiTransact', function () {
   let circuit;
   let account;
   let publicKey;
-  let address;
+  let owner;
   let viewKey;
   let spendKey;
+  let blinding;
 
   before(async function () {
+    blinding = Fp.random(32).toHexString();
     circuit = await getCircuit('multiTransact');
     account = Account.random();
-    const entropy = Fp.random(32);
-    const xData = account.generateStealthData(entropy);
-    publicKey = xData.publicKey.toArray();
-    address = xData.address;
-    spendKey = account.deriveStealthSigner(xData).privateKey;
+    account = Account.random();
+    spendKey = account.signer.privateKey;
     viewKey = account.viewer.privateKey;
+    publicKey = account.signer.publicKey.toArray();
+    owner = account.getStealthAddress(blinding);
   });
 
   it('should multi-transact', async function () {
-    const owner = address;
     const tree = getTree();
     const assetIds = [randomHex(20), randomHex(20)];
     const inNotes1 = [
@@ -83,6 +83,10 @@ describe('multiTransact', function () {
         ],
       ],
       inValue: [inNotes1.map((n) => n.value), inNotes2.map((n) => n.value)],
+      inBlinding: [
+        [blinding, blinding],
+        [blinding, blinding],
+      ],
       inNullifier: [nullifiers1, nullifiers2],
       inPathIndices: [
         [0, 1],

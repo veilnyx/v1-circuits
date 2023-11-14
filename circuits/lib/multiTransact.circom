@@ -11,6 +11,7 @@ template MultiTransact(nLevels, nA, nIns, nOuts) {
     signal input inPublicKey[nA][nIns][2];
     signal input inSignature[nA][nIns][2];
     signal input inValue[nA][nIns];
+    signal input inBlinding[nA][nIns];
     signal input inNullifier[nA][nIns];
     signal input inPathIndices[nA][nIns];
     signal input inPathElements[nA][nIns][nLevels];
@@ -32,6 +33,7 @@ template MultiTransact(nLevels, nA, nIns, nOuts) {
         transact[i].inPublicKey <== inPublicKey[i];
         transact[i].inSignature <== inSignature[i];
         transact[i].inValue <== inValue[i];
+        transact[i].inBlinding <== inBlinding[i];
         transact[i].inNullifier <== inNullifier[i];
         transact[i].inPathIndices <== inPathIndices[i];
         transact[i].inPathElements <== inPathElements[i];

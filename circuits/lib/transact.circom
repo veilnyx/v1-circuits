@@ -35,6 +35,7 @@ template Transact(nLevels, nIns, nOuts) {
     signal input inPublicKey[nIns][2]; 
     signal input inSignature[nIns][2];
     signal input inValue[nIns];
+    signal input inBlinding[nIns];
     signal input inNullifier[nIns];
     signal input inPathIndices[nIns];
     signal input inPathElements[nIns][nLevels];
@@ -52,13 +53,14 @@ template Transact(nLevels, nIns, nOuts) {
         inOwner[i] = StealthAddress();
         inOwner[i].publicKey <== inPublicKey[i];
         inOwner[i].stealthSeed <== stealthSeed.out;
+        inOwner[i].blinding <== inBlinding[i];
     }
 
     component inCommitmentHasher[nIns];
     for(var i = 0; i < nIns; i++) {
         inCommitmentHasher[i] = Commitment();
-        inCommitmentHasher[i].owner <== inOwner[i].out;
         inCommitmentHasher[i].assetId <== assetId;
+        inCommitmentHasher[i].owner <== inOwner[i].out;
         inCommitmentHasher[i].value <== inValue[i];
     }
 
@@ -99,8 +101,8 @@ template Transact(nLevels, nIns, nOuts) {
     component outCommitmentHasher[nOuts];
     for(var i = 0; i < nOuts; i++) {
         outCommitmentHasher[i] = Commitment();
-        outCommitmentHasher[i].owner <== outOwner[i];
         outCommitmentHasher[i].assetId <== assetId;
+        outCommitmentHasher[i].owner <== outOwner[i];
         outCommitmentHasher[i].value <== outValue[i];
         outCommitmentHasher[i].out === outCommitment[i];
     }
