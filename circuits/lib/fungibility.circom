@@ -17,9 +17,9 @@ template IsNonFungible() {
     signal input assetId;
     signal output out;
 
-    component isGte = GreaterThan(24);
-    isGte.in[0] <== assetId;
-    isGte.in[1] <== 0x01ffff;
+    component isGt = GreaterThan(24);
+    isGt.in[0] <== assetId;
+    isGt.in[1] <== 0x01ffff;
 
-    out <== isGte.out;
+    out <== isGt.out;
 }
