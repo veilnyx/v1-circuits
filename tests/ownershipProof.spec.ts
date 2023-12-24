@@ -1,6 +1,7 @@
 import { assert } from 'chai';
-import { Account, Fp, Note } from '@zkfi-tech/v1-sdk/src';
-import { getCircuit, poseidonHash, randomAccount, randomHex, signPoseidon } from './helpers';
+import { randomHex } from '@zkfi-tech/utils';
+import { poseidonHash } from '@zkfi-tech/babyjubjub';
+import { getCircuit, randomAccount } from './helpers';
 
 describe('ownershipProof', function () {
   this.timeout(8000);
@@ -11,34 +12,13 @@ describe('ownershipProof', function () {
   });
 
   it('should verify successfully for correct signature', async function () {
-    const account = Account.random();
-    const note = Note.fromAccount(account, {
-      assetId: Fp.random(20).toHexString(),
-      value: Fp.random(20),
-    });
-    // const xSigner = account.deriveStealthSigner(note.xData as any);
-    const sign = await account.sign(note.commitment); // signPoseidon(note.commitment, ac);
-
-    const inputs = {
-      commitment: note.commitment,
-      publicKey: account.signer.publicKey.toArray(),
-      signature: [sign.s, sign.e],
-    };
-
-    await assert.isFulfilled(circuit.calculateWitness(inputs, true));
-
-    const witness = await circuit.calculateWitness(inputs);
-    await circuit.checkConstraints(witness);
-  });
-
-  it('should verify successfully for correct signature', async function () {
     const commitment = poseidonHash(randomHex(32));
     const account = randomAccount();
-    const sign = signPoseidon(commitment, account.privateKey);
+    const sign = account.sign(commitment);
 
     const inputs = {
       commitment,
-      publicKey: account.publicKey,
+      publicKey: account.signer.publicKey.toArray(),
       signature: [sign.s, sign.e],
     };
 
@@ -52,11 +32,11 @@ describe('ownershipProof', function () {
     const commitment = poseidonHash(randomHex(32));
     const account = randomAccount();
     const badAccount = randomAccount();
-    const badSign = signPoseidon(commitment, badAccount.privateKey);
+    const badSign = badAccount.sign(commitment);
 
     const inputs = {
       commitment,
-      publicKey: account.publicKey,
+      publicKey: account.signer.publicKey.toArray(),
       signature: [badSign.s, badSign.e],
     };
 
@@ -68,17 +48,17 @@ describe('ownershipProof', function () {
     const badCommitment = poseidonHash(randomHex(32));
     const account = randomAccount();
     const badAccount = randomAccount();
-    const badSign = signPoseidon(commitment, account.privateKey);
+    const badSign = badAccount.sign(commitment);
 
     const badCommitmentInputs = {
       commitment: badCommitment,
-      publicKey: account.publicKey,
+      publicKey: account.signer.publicKey,
       signature: [badSign.s, badSign.e],
     };
 
     const badPublicKeyInputs = {
       commitment,
-      publicKey: badAccount.publicKey,
+      publicKey: badAccount.signer.publicKey,
       signature: [badSign.s, badSign.e],
     };
 

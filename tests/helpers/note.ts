@@ -1,5 +1,5 @@
 import { BigNumber, BigNumberish } from 'ethers';
-import { poseidonHash } from '.';
+import { poseidonHash } from '@zkfi-tech/babyjubjub';
 
 export const createNote = ({
   value,
@@ -12,7 +12,7 @@ export const createNote = ({
 }) => {
   assetId = BigNumber.from(assetId).toHexString();
   value = BigNumber.from(value).toHexString();
-  const commitment = poseidonHash(assetId, owner, value);
+  const commitment = poseidonHash([assetId, owner, value]);
 
   return { owner, assetId, value, commitment };
 };

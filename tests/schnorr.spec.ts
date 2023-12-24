@@ -1,4 +1,4 @@
-import { assert, expect } from 'chai';
+import { expect } from 'chai';
 import { randomBN } from './helpers';
 import { schnorr } from './helpers/schnorr';
 

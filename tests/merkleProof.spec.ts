@@ -1,9 +1,9 @@
 import { assert } from 'chai';
-import { BigNumber } from 'ethers';
+import { poseidonHash } from '@zkfi-tech/babyjubjub';
 import { MerkleTree } from 'fixed-merkle-tree';
-import { getCircuit, poseidonHash, randomHex } from './helpers';
+import { getCircuit, randomHex } from './helpers';
 
-const getTree = () => new MerkleTree(20, [], { hashFunction: poseidonHash });
+const getTree = () => new MerkleTree(20, [], { hashFunction: (a, b) => poseidonHash([a, b]) });
 const randomLeaf = () => poseidonHash(randomHex(32));
 
 describe('merkleProof', function () {
@@ -19,9 +19,11 @@ describe('merkleProof', function () {
     const leaves = [randomLeaf(), randomLeaf(), randomLeaf(), randomLeaf()];
     tree.bulkInsert(leaves);
 
-    const root = BigNumber.from(tree.root).toHexString();
+    const root = tree.root.toString();
+
     const proofElement = leaves[1];
     const idx = tree.indexOf(proofElement);
+
     const pathElements = tree.path(idx).pathElements;
 
     const inputs = {
@@ -33,7 +35,6 @@ describe('merkleProof', function () {
     };
 
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
-
     const witness = await circuit.calculateWitness(inputs);
     await circuit.checkConstraints(witness);
   });
@@ -43,7 +44,7 @@ describe('merkleProof', function () {
     const leaves = [randomLeaf(), randomLeaf(), randomLeaf(), randomLeaf()];
     tree.bulkInsert(leaves);
 
-    const root = BigNumber.from(tree.root).toHexString();
+    const root = tree.root.toString();
     const badRoot = randomHex(32);
     const proofElement = leaves[1];
     const idx = tree.indexOf(proofElement);
@@ -68,7 +69,7 @@ describe('merkleProof', function () {
     const leaves = [randomLeaf(), randomLeaf(), randomLeaf()];
     tree.bulkInsert(leaves);
 
-    const root = BigNumber.from(tree.root).toHexString();
+    const root = tree.root.toString();
     const proofElement = leaves[1];
     const badProofElement = 3;
     const idx = tree.indexOf(proofElement);
@@ -90,7 +91,7 @@ describe('merkleProof', function () {
     const leaves = [randomLeaf(), randomLeaf(), randomLeaf()];
     tree.bulkInsert(leaves);
 
-    const root = BigNumber.from(tree.root).toHexString();
+    const root = tree.root.toString();
     const badRoot = randomHex(32);
     const proofElement = leaves[1];
     const badProofElement = 3;
