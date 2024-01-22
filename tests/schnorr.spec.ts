@@ -1,21 +1,48 @@
-import { expect } from 'chai';
-import { randomBN } from './helpers';
-import { schnorr } from './helpers/schnorr';
+import { assert } from 'chai';
+import { randomHex } from '@zkfi-tech/utils';
+import { poseidonHash } from '@zkfi-tech/babyjubjub';
+import { getCircuit, randomAccount } from './helpers';
 
 describe('schnorr', function () {
-  it('should sign/verify correctly', async function () {
-    const privateKey = randomBN(31).toBigInt();
-    const msg = randomBN(32).toBigInt();
-    const k = randomBN(31).toBigInt();
-    const pubKey = schnorr.prv2pub(privateKey);
-    const sig = schnorr.signPoseidon(privateKey, msg, k);
-    const verified = schnorr.verifyPoseidon(sig, pubKey, msg);
-    expect(verified).to.be.true;
+  this.timeout(8000);
+  let circuit;
 
-    const badPrivateKey = randomBN(31).toBigInt();
-    const badPubKey = schnorr.prv2pub(badPrivateKey);
-    const badSig = schnorr.signPoseidon(badPrivateKey, msg, k);
-    const badVerified = schnorr.verifyPoseidon(badSig, pubKey, msg);
-    expect(badVerified).to.be.false;
+  before(async function () {
+    circuit = await getCircuit('schnorr');
+  });
+
+  it('should verify successfully for correct signature', async function () {
+    const message = poseidonHash(randomHex(32));
+    const account = randomAccount();
+    const sign = account.sign(message);
+
+    const inputs = {
+      enabled: 1,
+      m: message,
+      publicKey: [account.signer.publicKey.x, account.signer.publicKey.y],
+      e: sign.e,
+      s: sign.s,
+    };
+
+    await assert.isFulfilled(circuit.calculateWitness(inputs, true));
+    const witness = await circuit.calculateWitness(inputs);
+    await circuit.checkConstraints(witness);
+  });
+
+  it('should fail verification for bad signatures', async function () {
+    const message = poseidonHash(randomHex(32));
+    const account = randomAccount();
+
+    const badAccount = randomAccount();
+    const badSign = badAccount.sign(message);
+    const badInputs = {
+      enabled: 1,
+      m: message,
+      publicKey: [account.signer.publicKey.x, account.signer.publicKey.y],
+      e: badSign.e,
+      s: badSign.s,
+    };
+
+    await assert.isRejected(circuit.calculateWitness(badInputs, true));
   });
 });
