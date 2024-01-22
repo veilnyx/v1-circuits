@@ -12,12 +12,12 @@ describe('ownershipProof', function () {
   });
 
   it('should verify successfully for correct signature', async function () {
-    const commitment = poseidonHash(randomHex(32));
+    const hash = poseidonHash(randomHex(32));
     const account = randomAccount();
-    const sign = account.sign(commitment);
+    const sign = account.sign(hash);
 
     const inputs = {
-      commitment,
+      hash,
       publicKey: account.signer.publicKey.toArray(),
       signature: [sign.s, sign.e],
     };
@@ -29,13 +29,13 @@ describe('ownershipProof', function () {
   });
 
   it('should fail verification for incorrect signatures', async function () {
-    const commitment = poseidonHash(randomHex(32));
+    const hash = poseidonHash(randomHex(32));
     const account = randomAccount();
     const badAccount = randomAccount();
-    const badSign = badAccount.sign(commitment);
+    const badSign = badAccount.sign(hash);
 
     const inputs = {
-      commitment,
+      hash,
       publicKey: account.signer.publicKey.toArray(),
       signature: [badSign.s, badSign.e],
     };
@@ -44,20 +44,20 @@ describe('ownershipProof', function () {
   });
 
   it('should fail verification for incorrect message or public key', async function () {
-    const commitment = poseidonHash(randomHex(32));
-    const badCommitment = poseidonHash(randomHex(32));
+    const hash = poseidonHash(randomHex(32));
+    const badHash = poseidonHash(randomHex(32));
     const account = randomAccount();
     const badAccount = randomAccount();
-    const badSign = badAccount.sign(commitment);
+    const badSign = badAccount.sign(hash);
 
     const badCommitmentInputs = {
-      commitment: badCommitment,
+      hash: badHash,
       publicKey: account.signer.publicKey,
       signature: [badSign.s, badSign.e],
     };
 
     const badPublicKeyInputs = {
-      commitment,
+      hash,
       publicKey: badAccount.signer.publicKey,
       signature: [badSign.s, badSign.e],
     };
