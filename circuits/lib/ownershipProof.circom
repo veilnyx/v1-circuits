@@ -7,7 +7,7 @@ template OwnershipProof() {
     signal input publicKey[2];
     signal input signature[2];
 
-    component schnorr = SchnorrPoseidonVerify();
+    component schnorr = SchnorrVerify();
     schnorr.enabled <== 1;
     schnorr.m <== hash;
     schnorr.publicKey <== publicKey;

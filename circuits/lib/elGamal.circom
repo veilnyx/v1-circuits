@@ -7,7 +7,7 @@ include "../../node_modules/circomlib/circuits/escalarmulany.circom";
 include "../../node_modules/circomlib/circuits/pointbits.circom";
 include "../../node_modules/circomlib/circuits/poseidon.circom";
 
-template ElGamalPoseidonEncrypt() {
+template ElGamalEncrypt() {
     // Randomnesss
     signal input r;
 
