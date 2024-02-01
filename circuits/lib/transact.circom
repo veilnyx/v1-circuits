@@ -8,14 +8,23 @@ include "./merkleProof.circom";
 include "./ownershipProof.circom";
 include "./zeroSumFungible.circom";
 include "./zeroSumNonFungible.circom";
-include "./matchPublicAssets.circom";
+include "./complianceProof.circom";
 
 template Transact(nLevels, nIns, nOuts) {
-    signal input root;
-    signal input publicFlow;
+    // Recent merkle root
+    signal input merkleRoot;
 
-    signal input inPublicKeys[nIns][2];
-    signal input inSignatures[nIns][2];
+    // Shielded transaction hash & sign
+    signal input hash;
+    signal input signature[2];
+
+    // Publicaly auditable data
+    signal input publicFlow;
+    signal input publicAssetIds[nOuts];
+    signal input publicValues[nOuts];
+
+    // Input notes data 
+    signal input inPublicKey[2];
     signal input inAssetIds[nIns];
     signal input inValues[nIns];
     signal input inBlindings[nIns];
@@ -23,25 +32,23 @@ template Transact(nLevels, nIns, nOuts) {
     signal input inPathIndices[nIns];
     signal input inPathElements[nIns][nLevels];
 
+    // Output notes data
     signal input outAssetIds[nIns];
     signal input outOwners[nOuts];
     signal input outValues[nOuts];
     signal input outCommitments[nOuts];
 
-    signal input publicAssetIds[nOuts];
-    signal input publicValues[nOuts];
-
-    // If asset `publicAssetIds[i]` is publicly announced (i.e. is non-zero)
-    // then assert `outAssetIds[i]` to be equal to `publicAssetIds[i]`
-    component matchPublicAssets = MatchPublicAssets(nOuts);
-    matchPublicAssets.publicAssetIds <== publicAssetIds;
-    matchPublicAssets.outAssetIds <== outAssetIds;
+    // Encrypted data
+    signal input encPublicKey[2];
+    signal input ephKey;
+    signal input c1Packed;
+    signal input encAssets[nOuts];
 
     // Calculate stealth addresses
     component inOwner[nIns];
     for (var i = 0; i < nIns; i++) {
         inOwner[i] = StealthAddress();
-        inOwner[i].publicKey <== inPublicKeys[i];
+        inOwner[i].publicKey <== inPublicKey;
         inOwner[i].blinding <== inBlindings[i];
     }
 
@@ -65,14 +72,11 @@ template Transact(nLevels, nIns, nOuts) {
         inNullifiersHasher[i].out === inNullifiers[i];
     }
 
-    // Calculate ownership proofs
-    component inOwnershipProof[nIns];
-    for (var i = 0; i < nIns; i++) {
-        inOwnershipProof[i] = OwnershipProof();
-        inOwnershipProof[i].publicKey <== inPublicKeys[i];
-        inOwnershipProof[i].commitment <== inCommitmentHasher[i].out;
-        inOwnershipProof[i].signature <== inSignatures[i];
-    }
+    // Check ownership proof
+    component inOwnershipProof = OwnershipProof();
+    inOwnershipProof.publicKey <== inPublicKey;
+    inOwnershipProof.hash <== hash;
+    inOwnershipProof.signature <== signature;
 
     // Check merkle inclusions of commitments, except for dummy notes
     // where assetId == 0 AND value == 0
@@ -80,16 +84,16 @@ template Transact(nLevels, nIns, nOuts) {
     for (var i = 0; i < nIns; i++) {
         inMerkleProof[i] = MerkleProof(nLevels);
         inMerkleProof[i].enabled <== inAssetIds[i] + inValues[i];
-        inMerkleProof[i].root <== root;
+        inMerkleProof[i].root <== merkleRoot;
         inMerkleProof[i].leaf <== inCommitmentHasher[i].out;
         inMerkleProof[i].pathIndices <== inPathIndices[i];
         inMerkleProof[i].pathElements <== inPathElements[i];
     }
 
-    // Limit output values to be within 248 bits
+    // Limit output values to be within 224 bits
     component limitRange[nOuts];
     for (var i = 0; i < nOuts; i++) { 
-        limitRange[i] = LimitRange(248);
+        limitRange[i] = LimitRange(224);
         limitRange[i].in <== outValues[i];
     }
 
@@ -115,6 +119,7 @@ template Transact(nLevels, nIns, nOuts) {
         inZeroSumFungible[i].outAssetIds <== outAssetIds;
         inZeroSumFungible[i].outValues <== outValues;
         inZeroSumFungible[i].publicValues <== publicValues;
+        inZeroSumFungible[i].publicAssetIds <== publicAssetIds;
     }
 
     // Assert that total value of each fungible (ERC20) asset in outputs are conserved
@@ -128,6 +133,7 @@ template Transact(nLevels, nIns, nOuts) {
         outZeroSumFungible[i].outAssetIds <== outAssetIds;
         outZeroSumFungible[i].outValues <== outValues;
         outZeroSumFungible[i].publicValues <== publicValues;
+        outZeroSumFungible[i].publicAssetIds <== publicAssetIds;
     }
 
     // Assert that count of each non-fungible (ERC721) asset in inputs are conserved
@@ -142,6 +148,7 @@ template Transact(nLevels, nIns, nOuts) {
         inZeroSumNonFungible[i].outAssetIds <== outAssetIds;
         inZeroSumNonFungible[i].outValues <== outValues;
         inZeroSumNonFungible[i].publicValues <== publicValues;
+        inZeroSumNonFungible[i].publicAssetIds <== publicAssetIds;
     }
 
     // Assert that count of each non-fungible (ERC721) asset in outputs are conserved
@@ -156,5 +163,15 @@ template Transact(nLevels, nIns, nOuts) {
         outZeroSumNonFungible[i].outAssetIds <== outAssetIds;
         outZeroSumNonFungible[i].outValues <== outValues;
         outZeroSumNonFungible[i].publicValues <== publicValues;
+        outZeroSumNonFungible[i].publicAssetIds <== publicAssetIds;
     }
+
+    // Compliance encryption checks
+    component complianceProof = ComplianceProof(nOuts);
+    complianceProof.publicKey <== encPublicKey;
+    complianceProof.ephKey <== ephKey;
+    complianceProof.c1Packed <== c1Packed;
+    complianceProof.assetIds <== outAssetIds;
+    complianceProof.values <== outValues;
+    complianceProof.encAssets <== encAssets;
 }
