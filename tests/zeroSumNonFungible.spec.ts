@@ -23,6 +23,7 @@ describe('zeroSumNonFungible', function () {
       inValues: [4, 0, 0, 0],
       outAssetIds: [token1, nft1, token1, token1],
       outValues: [2, 4, 2, 0],
+      publicAssetIds: [token1, nft1, token1, token1],
       publicValues: [0, 0, 2, 0],
     };
 
@@ -40,6 +41,7 @@ describe('zeroSumNonFungible', function () {
       inValues: [4, 0, 0, 0],
       outAssetIds: [nft2, nft1, token1, token2],
       outValues: [0, 4, 4, 0],
+      publicAssetIds: [nft2, nft1, token1, token2],
       publicValues: [0, 0, 2, 0],
     };
 
@@ -57,6 +59,7 @@ describe('zeroSumNonFungible', function () {
       inValues: [4, 0, 3, 0],
       outAssetIds: [nft1, token1, nft1, nft1],
       outValues: [98, 3, 2, 0],
+      publicAssetIds: [nft1, token1, nft1, nft1],
       publicValues: [0, 3, 2, 0],
     };
 
@@ -64,22 +67,6 @@ describe('zeroSumNonFungible', function () {
     const witness = await circuit.calculateWitness(inputs, true);
     await circuit.checkConstraints(witness);
   });
-
-  //   it('should check zero sum without public value of checked asset', async function () {
-  //     const inputs = {
-  //       publicFlow: 1,
-  //       assetId: token1,
-  //       inAssetIds: [token1, token1, token2, token3],
-  //       inValues: [4, 2, 0, 0].map(eth),
-  //       outAssetIds: [token1, token1, token2, token3],
-  //       outValues: [1, 5, 2, 0].map(eth),
-  //       publicValues: [0, 0, 4, 2].map(eth),
-  //     };
-
-  //     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
-  //     const witness = await circuit.calculateWitness(inputs, true);
-  //     await circuit.checkConstraints(witness);
-  //   });
 
   it('should check zero sum for public out-flow (withdraw)', async function () {
     const inputs = {
@@ -90,6 +77,7 @@ describe('zeroSumNonFungible', function () {
       inValues: [5, 10, 0, 0],
       outAssetIds: [token1, token1, token1, nft1],
       outValues: [0, 2, 2, 0],
+      publicAssetIds: [token1, token1, token1, nft1],
       publicValues: [5, 0, 8, 5],
     };
 
@@ -107,6 +95,7 @@ describe('zeroSumNonFungible', function () {
       inValues: [4, 0, 4, 0],
       outAssetIds: [nft1, token1, token3, token2],
       outValues: [4, 2, 2, 0],
+      publicAssetIds: [nft1, token1, token3, token2],
       publicValues: [0, 0, 0, 0],
     };
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
@@ -135,6 +124,7 @@ describe('zeroSumNonFungible', function () {
       inValues: [4, 0, 4, 0],
       outAssetIds: [nft1, token1, token3, token2],
       outValues: [4, 2, 2, 0],
+      publicAssetIds: [nft1, token1, token3, token2],
       publicValues: [0, 0, 0, 0],
     };
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));

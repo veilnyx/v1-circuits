@@ -12,6 +12,7 @@ template ZeroSumNonFungible(nIns, nOuts) {
     signal input inValues[nIns];
     signal input outAssetIds[nOuts];
     signal input outValues[nOuts];
+    signal input publicAssetIds[nOuts];
     signal input publicValues[nOuts];
 
     // Count the unique NFTs in the inputs
@@ -32,7 +33,7 @@ template ZeroSumNonFungible(nIns, nOuts) {
     component publicCountNft = CountAssets(nOuts);
     publicCountNft.selectedAssetId <== assetId;
     publicCountNft.selectedAssetValue <== nftId;
-    publicCountNft.assetIds <== outAssetIds;
+    publicCountNft.assetIds <== publicAssetIds;
     publicCountNft.values <== publicValues;
 
     component isNonFungible = IsNonFungible();

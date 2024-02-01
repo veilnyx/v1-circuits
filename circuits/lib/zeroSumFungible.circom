@@ -12,6 +12,7 @@ template ZeroSumFungible(nIns, nOuts) {
     signal input inValues[nIns];
     signal input outAssetIds[nOuts];
     signal input outValues[nOuts];
+    signal input publicAssetIds[nOuts];
     signal input publicValues[nOuts];
 
     // Sum input notes values with asset id equal to `assetId`
@@ -29,7 +30,7 @@ template ZeroSumFungible(nIns, nOuts) {
     // Sum public values with asset id equal to `assetId`
     component publicSumValues = SumValues(nOuts);
     publicSumValues.selectedAssetId <== assetId;
-    publicSumValues.assetIds <== outAssetIds;
+    publicSumValues.assetIds <== publicAssetIds;
     publicSumValues.values <== publicValues;
 
     component isFungible = IsFungible();

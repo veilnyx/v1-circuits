@@ -25,6 +25,7 @@ describe('zeroSumFungible', function () {
       inValues: [4, 0, 0, 0].map(eth),
       outAssetIds: [token1, token1, token1, token1],
       outValues: [2, 2, 2, 0].map(eth),
+      publicAssetIds: [0, 0, token1, 0],
       publicValues: [0, 0, 2, 0].map(eth),
     };
 
@@ -41,6 +42,7 @@ describe('zeroSumFungible', function () {
       inValues: [4, 0, 0, 0].map(eth),
       outAssetIds: [token1, token2, token2, token2],
       outValues: [6, 2, 4, 0].map(eth),
+      publicAssetIds: [token2, 0, token1, 0],
       publicValues: [2, 0, 2, 0].map(eth),
     };
 
@@ -57,6 +59,7 @@ describe('zeroSumFungible', function () {
       inValues: [4, 0, 0, 0],
       outAssetIds: [nft1, token1, nft1, nft1],
       outValues: [98, 1, 2, 0],
+      publicAssetIds: [0, 0, nft1, 0],
       publicValues: [0, 0, 2, 0],
     };
 
@@ -73,6 +76,7 @@ describe('zeroSumFungible', function () {
       inValues: [4, 2, 0, 0].map(eth),
       outAssetIds: [token1, token1, token2, token3],
       outValues: [1, 5, 2, 0].map(eth),
+      publicAssetIds: [token1, token1, token2, token3],
       publicValues: [0, 0, 4, 2].map(eth),
     };
 
@@ -89,6 +93,7 @@ describe('zeroSumFungible', function () {
       inValues: [4, 10, 0, 0].map(eth),
       outAssetIds: [token1, token1, token1, token1],
       outValues: [2, 2, 2, 0].map(eth),
+      publicAssetIds: [token1, token1, token1, token1],
       publicValues: [0, 0, 8, 0].map(eth),
     };
 
@@ -105,6 +110,7 @@ describe('zeroSumFungible', function () {
       inValues: [4, 2, 3, 7].map(eth),
       outAssetIds: [token1, token1, token3, token2],
       outValues: [6, 0, 2, 0].map(eth),
+      publicAssetIds: [token1, token1, token3, token2],
       publicValues: [5, 0, 8, 0].map(eth),
     };
 
@@ -121,6 +127,7 @@ describe('zeroSumFungible', function () {
       inValues: [4, 0, 0, 0].map(eth),
       outAssetIds: [token1, token1, token3, token2],
       outValues: [2, 2, 2, 0].map(eth),
+      publicAssetIds: [token1, token1, token3, token2],
       publicValues: [0, 0, 0, 0].map(eth),
     };
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
@@ -155,6 +162,7 @@ describe('zeroSumFungible', function () {
       inValues: [4, 3, 0, 0].map(eth),
       outAssetIds: [token1, token1, token3, token2],
       outValues: [6, 0, 2, 0].map(eth),
+      publicAssetIds: [token1, token1, token3, token2],
       publicValues: [1, 0, 0, 0].map(eth),
     };
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
