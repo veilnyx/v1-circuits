@@ -1,7 +1,7 @@
 import { expect } from 'chai';
-import { concatHex, padHex, size } from 'viem';
 import { randomHex, toBigInt } from '@zkfi-tech/utils';
 import { getCircuit } from './helpers';
+import { encodeAsset } from './helpers/asset';
 
 describe('encodeAsset', () => {
   let circuit;
@@ -15,8 +15,7 @@ describe('encodeAsset', () => {
     const value = randomHex(16); // 28 bytes
 
     // 31 bytes
-    const encoded = concatHex([assetId, padHex(value, { size: 28 })]);
-    expect(size(encoded)).to.equal(31);
+    const encoded = encodeAsset(assetId, value);
 
     const inputs = {
       assetId,
