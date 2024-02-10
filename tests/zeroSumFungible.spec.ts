@@ -19,14 +19,14 @@ describe('zeroSumFungible', function () {
 
   it('should check zero sum for fungible asset', async function () {
     const inputs = {
-      publicFlow: 0,
+      pubFlow: 0,
       assetId: token1,
       inAssetIds: [token1, token1, token1, token1],
       inValues: [4, 0, 0, 0].map(eth),
       outAssetIds: [token1, token1, token1, token1],
       outValues: [2, 2, 2, 0].map(eth),
-      publicAssetIds: [0, 0, token1, 0],
-      publicValues: [0, 0, 2, 0].map(eth),
+      pubAssetIds: [0, 0, token1, 0],
+      pubValues: [0, 0, 2, 0].map(eth),
     };
 
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
@@ -36,14 +36,14 @@ describe('zeroSumFungible', function () {
 
   it('should check zero sum only for given fungible asset', async function () {
     const inputs = {
-      publicFlow: 0,
+      pubFlow: 0,
       assetId: token1,
       inAssetIds: [token1, token2, token1, token2],
       inValues: [4, 0, 0, 0].map(eth),
       outAssetIds: [token1, token2, token2, token2],
       outValues: [6, 2, 4, 0].map(eth),
-      publicAssetIds: [token2, 0, token1, 0],
-      publicValues: [2, 0, 2, 0].map(eth),
+      pubAssetIds: [token2, 0, token1, 0],
+      pubValues: [2, 0, 2, 0].map(eth),
     };
 
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
@@ -53,14 +53,14 @@ describe('zeroSumFungible', function () {
 
   it('should ignore zero sum check for non-fungible asset', async function () {
     const inputs = {
-      publicFlow: 0,
+      pubFlow: 0,
       assetId: nft1,
       inAssetIds: [nft1, nft1, token1, nft1],
       inValues: [4, 0, 0, 0],
       outAssetIds: [nft1, token1, nft1, nft1],
       outValues: [98, 1, 2, 0],
-      publicAssetIds: [0, 0, nft1, 0],
-      publicValues: [0, 0, 2, 0],
+      pubAssetIds: [0, 0, nft1, 0],
+      pubValues: [0, 0, 2, 0],
     };
 
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
@@ -70,14 +70,14 @@ describe('zeroSumFungible', function () {
 
   it('should check zero sum without public value of checked asset', async function () {
     const inputs = {
-      publicFlow: 0,
+      pubFlow: 0,
       assetId: token1,
       inAssetIds: [token1, token1, token2, token3],
       inValues: [4, 2, 0, 0].map(eth),
       outAssetIds: [token1, token1, token2, token3],
       outValues: [1, 5, 2, 0].map(eth),
-      publicAssetIds: [token1, token1, token2, token3],
-      publicValues: [0, 0, 4, 2].map(eth),
+      pubAssetIds: [token1, token1, token2, token3],
+      pubValues: [0, 0, 4, 2].map(eth),
     };
 
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
@@ -87,14 +87,14 @@ describe('zeroSumFungible', function () {
 
   it('should check zero sum for negative public flow', async function () {
     const inputs = {
-      publicFlow: 1,
+      pubFlow: 1,
       assetId: token1,
       inAssetIds: [token1, token1, token1, token1],
       inValues: [4, 10, 0, 0].map(eth),
       outAssetIds: [token1, token1, token1, token1],
       outValues: [2, 2, 2, 0].map(eth),
-      publicAssetIds: [token1, token1, token1, token1],
-      publicValues: [0, 0, 8, 0].map(eth),
+      pubAssetIds: [token1, token1, token1, token1],
+      pubValues: [0, 0, 8, 0].map(eth),
     };
 
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
@@ -104,14 +104,14 @@ describe('zeroSumFungible', function () {
 
   it('should check zero sum for negative public flow for mixed assets', async function () {
     const inputs = {
-      publicFlow: 1,
+      pubFlow: 1,
       assetId: token1,
       inAssetIds: [token1, token2, token3, token1],
       inValues: [4, 2, 3, 7].map(eth),
       outAssetIds: [token1, token1, token3, token2],
       outValues: [6, 0, 2, 0].map(eth),
-      publicAssetIds: [token1, token1, token3, token2],
-      publicValues: [5, 0, 8, 0].map(eth),
+      pubAssetIds: [token1, token1, token3, token2],
+      pubValues: [5, 0, 8, 0].map(eth),
     };
 
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
@@ -121,14 +121,14 @@ describe('zeroSumFungible', function () {
 
   it('should fail zero sum check for incorrect values', async function () {
     const inputs = {
-      publicFlow: 0,
+      pubFlow: 0,
       assetId: token1,
       inAssetIds: [token1, token1, token2, token3],
       inValues: [4, 0, 0, 0].map(eth),
       outAssetIds: [token1, token1, token3, token2],
       outValues: [2, 2, 2, 0].map(eth),
-      publicAssetIds: [token1, token1, token3, token2],
-      publicValues: [0, 0, 0, 0].map(eth),
+      pubAssetIds: [token1, token1, token3, token2],
+      pubValues: [0, 0, 0, 0].map(eth),
     };
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
 
@@ -149,21 +149,21 @@ describe('zeroSumFungible', function () {
     // Gaining public value
     const inputs3 = {
       ...inputs,
-      publicValues: [1, 0, 0, 1].map(eth),
+      pubValues: [1, 0, 0, 1].map(eth),
     };
     await assert.isRejected(circuit.calculateWitness(inputs3, true), Error);
   });
 
   it('should fail zero sum check for incorrect values with negative flow', async function () {
     const inputs = {
-      publicFlow: 1,
+      pubFlow: 1,
       assetId: token1,
       inAssetIds: [token1, token1, token2, token3],
       inValues: [4, 3, 0, 0].map(eth),
       outAssetIds: [token1, token1, token3, token2],
       outValues: [6, 0, 2, 0].map(eth),
-      publicAssetIds: [token1, token1, token3, token2],
-      publicValues: [1, 0, 0, 0].map(eth),
+      pubAssetIds: [token1, token1, token3, token2],
+      pubValues: [1, 0, 0, 0].map(eth),
     };
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
 
@@ -184,7 +184,7 @@ describe('zeroSumFungible', function () {
     // Gaining public value
     const inputs3 = {
       ...inputs,
-      publicValues: [2, 0, 0, 1].map(eth),
+      pubValues: [2, 0, 0, 1].map(eth),
     };
     await assert.isRejected(circuit.calculateWitness(inputs3, true), Error);
   });

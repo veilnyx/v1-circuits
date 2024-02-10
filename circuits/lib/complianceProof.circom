@@ -4,9 +4,9 @@ include "./encodeAsset.circom";
 include "./elGamal.circom";
 
 template ComplianceProof(n) {
-    signal input publicKey[2];
     signal input ephKey;
-    signal input c1Packed;
+    signal input ephPubKeyPacked;
+    signal input encPubKey[2];
     signal input assetIds[n];
     signal input values[n];
     signal input encAssets[n];
@@ -19,12 +19,12 @@ template ComplianceProof(n) {
     }
 
     component encVerifier = ElGamalEncryptMulti(n);
-    encVerifier.r <== ephKey;
-    encVerifier.publicKey <== publicKey;
-    encVerifier.c1Packed <== c1Packed;
+    encVerifier.ephKey <== ephKey;
+    encVerifier.ephPubKeyPacked <== ephPubKeyPacked;
+    encVerifier.encPubKey <== encPubKey;
 
     for (var i = 0; i < n; i++) {
         encVerifier.m[i] <== assetEncoder[i].out;
-        encVerifier.c2[i] <== encAssets[i];
+        encVerifier.c[i] <== encAssets[i];
     }
 }

@@ -19,9 +19,9 @@ template Transact(nLevels, nIns, nOuts) {
     signal input signature[2];
 
     // Publicaly auditable data
-    signal input publicFlow;
-    signal input publicAssetIds[nOuts];
-    signal input publicValues[nOuts];
+    signal input pubFlow;
+    signal input pubAssetIds[nOuts];
+    signal input pubValues[nOuts];
 
     // Input notes data 
     signal input inPublicKey[2];
@@ -39,10 +39,12 @@ template Transact(nLevels, nIns, nOuts) {
     signal input outCommitments[nOuts];
 
     // Encrypted data
-    signal input encPublicKey[2];
     signal input ephKey;
-    signal input c1Packed;
+    signal input ephPubKeyPacked;
+    signal input encPubKey[2];
     signal input encAssets[nOuts];
+
+    var MAX_BITS_VALUE = 224;
 
     // Calculate stealth addresses
     component inOwner[nIns];
@@ -83,6 +85,7 @@ template Transact(nLevels, nIns, nOuts) {
     component inMerkleProof[nIns];
     for (var i = 0; i < nIns; i++) {
         inMerkleProof[i] = MerkleProof(nLevels);
+        //@todo check if this is sufficient
         inMerkleProof[i].enabled <== inAssetIds[i] + inValues[i];
         inMerkleProof[i].root <== merkleRoot;
         inMerkleProof[i].leaf <== inCommitmentHasher[i].out;
@@ -93,7 +96,7 @@ template Transact(nLevels, nIns, nOuts) {
     // Limit output values to be within 224 bits
     component limitRange[nOuts];
     for (var i = 0; i < nOuts; i++) { 
-        limitRange[i] = LimitRange(224);
+        limitRange[i] = LimitRange(MAX_BITS_VALUE);
         limitRange[i].in <== outValues[i];
     }
 
@@ -112,65 +115,65 @@ template Transact(nLevels, nIns, nOuts) {
     component inZeroSumFungible[nIns];
     for (var i = 0; i < nIns; i++) {
         inZeroSumFungible[i] = ZeroSumFungible(nIns, nOuts);
-        inZeroSumFungible[i].publicFlow <== publicFlow;
+        inZeroSumFungible[i].pubFlow <== pubFlow;
         inZeroSumFungible[i].assetId <== inAssetIds[i];
         inZeroSumFungible[i].inAssetIds <== inAssetIds;
         inZeroSumFungible[i].inValues <== inValues;
         inZeroSumFungible[i].outAssetIds <== outAssetIds;
         inZeroSumFungible[i].outValues <== outValues;
-        inZeroSumFungible[i].publicValues <== publicValues;
-        inZeroSumFungible[i].publicAssetIds <== publicAssetIds;
+        inZeroSumFungible[i].pubValues <== pubValues;
+        inZeroSumFungible[i].pubAssetIds <== pubAssetIds;
     }
 
     // Assert that total value of each fungible (ERC20) asset in outputs are conserved
     component outZeroSumFungible[nOuts];
     for (var i = 0; i < nOuts; i++) {
         outZeroSumFungible[i] = ZeroSumFungible(nIns, nOuts);
-        outZeroSumFungible[i].publicFlow <== publicFlow;
+        outZeroSumFungible[i].pubFlow <== pubFlow;
         outZeroSumFungible[i].assetId <== outAssetIds[i];
         outZeroSumFungible[i].inAssetIds <== inAssetIds;
         outZeroSumFungible[i].inValues <== inValues;
         outZeroSumFungible[i].outAssetIds <== outAssetIds;
         outZeroSumFungible[i].outValues <== outValues;
-        outZeroSumFungible[i].publicValues <== publicValues;
-        outZeroSumFungible[i].publicAssetIds <== publicAssetIds;
+        outZeroSumFungible[i].pubValues <== pubValues;
+        outZeroSumFungible[i].pubAssetIds <== pubAssetIds;
     }
 
     // Assert that count of each non-fungible (ERC721) asset in inputs are conserved
     component inZeroSumNonFungible[nIns];
     for (var i = 0; i < nIns; i++) {
         inZeroSumNonFungible[i] = ZeroSumNonFungible(nIns, nOuts);
-        inZeroSumNonFungible[i].publicFlow <== publicFlow;
+        inZeroSumNonFungible[i].pubFlow <== pubFlow;
         inZeroSumNonFungible[i].assetId <== inAssetIds[i];
         inZeroSumNonFungible[i].nftId <== inValues[i];
         inZeroSumNonFungible[i].inAssetIds <== inAssetIds;
         inZeroSumNonFungible[i].inValues <== inValues;
         inZeroSumNonFungible[i].outAssetIds <== outAssetIds;
         inZeroSumNonFungible[i].outValues <== outValues;
-        inZeroSumNonFungible[i].publicValues <== publicValues;
-        inZeroSumNonFungible[i].publicAssetIds <== publicAssetIds;
+        inZeroSumNonFungible[i].pubValues <== pubValues;
+        inZeroSumNonFungible[i].pubAssetIds <== pubAssetIds;
     }
 
     // Assert that count of each non-fungible (ERC721) asset in outputs are conserved
     component outZeroSumNonFungible[nOuts];
     for (var i = 0; i < nOuts; i++) {
         outZeroSumNonFungible[i] = ZeroSumNonFungible(nIns, nOuts);
-        outZeroSumNonFungible[i].publicFlow <== publicFlow;
+        outZeroSumNonFungible[i].pubFlow <== pubFlow;
         outZeroSumNonFungible[i].assetId <== outAssetIds[i];
         outZeroSumNonFungible[i].nftId <== outValues[i];
         outZeroSumNonFungible[i].inAssetIds <== inAssetIds;
         outZeroSumNonFungible[i].inValues <== inValues;
         outZeroSumNonFungible[i].outAssetIds <== outAssetIds;
         outZeroSumNonFungible[i].outValues <== outValues;
-        outZeroSumNonFungible[i].publicValues <== publicValues;
-        outZeroSumNonFungible[i].publicAssetIds <== publicAssetIds;
+        outZeroSumNonFungible[i].pubValues <== pubValues;
+        outZeroSumNonFungible[i].pubAssetIds <== pubAssetIds;
     }
 
     // Compliance encryption checks
     component complianceProof = ComplianceProof(nOuts);
-    complianceProof.publicKey <== encPublicKey;
     complianceProof.ephKey <== ephKey;
-    complianceProof.c1Packed <== c1Packed;
+    complianceProof.ephPubKeyPacked <== ephPubKeyPacked;
+    complianceProof.encPubKey <== encPubKey;
     complianceProof.assetIds <== outAssetIds;
     complianceProof.values <== outValues;
     complianceProof.encAssets <== encAssets;

@@ -10,21 +10,24 @@ include "../../node_modules/circomlib/circuits/poseidon.circom";
 // Using encoding free hashed el gamal encryption that uses addition
 // See: https://www.di.ens.fr/david.pointcheval/Documents/Papers/2006_pkcC.pdf
 template ElGamalEncrypt() {
-    // Randomnesss/Ephemeral key
-    signal input r;
+    // Ephemeral key, (r)
+    signal input ephKey;
+
+    // Packed ephemeral public key (R.pack())
+    signal input ephPubKeyPacked;
+
+    // Encryption key (P)
+    signal input encPubKey[2];
 
     // Message
     signal input m;
 
-    // Encryption key (P)
-    signal input publicKey[2];
-
     // Ciphertext
-    signal input c1Packed;
-    signal input c2;
+    signal input c;
 
-    // c1 = c1Packed.unpack()
-    signal c1[2];
+    // Ephemeral public key (R = r.G)
+    // INVARIANT: R = unpack(R.pack())
+    signal ephPubKey[2];
 
     // Base point (G) (https://eips.ethereum.org/EIPS/eip-2494)
     var BASE8[2] = [
@@ -35,39 +38,39 @@ template ElGamalEncrypt() {
     // Subgroup order (https://eips.ethereum.org/EIPS/eip-2494)
     var SUBGROUP_ORDER = 2736030358979909402780800718157159386076813972158567259200215660948447373041;
 
-    component rbits = Num2Bits(254);
-    rbits.in <== r;
+    component ephKeyBits = Num2Bits(254);
+    ephKeyBits.in <== ephKey;
 
     // Assert r < SUBGROUP_ORDER
     component comp = CompConstant(SUBGROUP_ORDER);
-    comp.in <== rbits.out;
+    comp.in <== ephKeyBits.out;
     comp.out === 0;
 
-    // Caclulate c1 = r.G
-    component rMulG = EscalarMulAny(254);
-    rMulG.e <== rbits.out;
-    rMulG.p <== BASE8;
-    c1 <== rMulG.out;
+    // Caclulate R = r.G
+    component ephKeyMulG = EscalarMulAny(254);
+    ephKeyMulG.e <== ephKeyBits.out;
+    ephKeyMulG.p <== BASE8;
+    ephPubKey <== ephKeyMulG.out;
 
-    // Assert c1Packed = c1.pack()
+
     component p2b = Point2Bits_Strict();
     component b2n = Bits2Num(256);
-    p2b.in <== c1;
+    p2b.in <== ephPubKey;
     b2n.in <== p2b.out;
-    c1Packed === b2n.out;
+    ephPubKeyPacked === b2n.out;
 
     // Calculate r.P
-    component rMulP = EscalarMulAny(254);
-    rMulP.e <== rbits.out;
-    rMulP.p <== publicKey;
+    component ephKeyMulP = EscalarMulAny(254);
+    ephKeyMulP.e <== ephKeyBits.out;
+    ephKeyMulP.p <== encPubKey;
 
     // Calculate h = H(r.P)
-    component rMulPHash = Poseidon(2);
-    rMulPHash.inputs[0] <== rMulP.out[0];
-    rMulPHash.inputs[1] <== rMulP.out[1];
+    component ephKeyMulPHash = Poseidon(2);
+    ephKeyMulPHash.inputs[0] <== ephKeyMulP.out[0];
+    ephKeyMulPHash.inputs[1] <== ephKeyMulP.out[1];
 
-    // Assert c2 = m + h
-    c2 === m + rMulPHash.out;
+    // Assert c = m + h
+    c === m + ephKeyMulPHash.out;
 }
 
 // Re-uses randomness to encrypt multiple messages
@@ -76,21 +79,24 @@ template ElGamalEncrypt() {
 //  - What if m = 0 (e.g. for dummy notes). h = c2 in that case. @todo fix
 //      - change def of dummy notes: dummy note has assetId=0 & any value
 template ElGamalEncryptMulti(n) {
-    // Randomnesss/Ephemeral key
-    signal input r;
+    // Ephemeral key, (r)
+    signal input ephKey;
 
-    // Messages
-    signal input m[n];
+    // Packed ephemeral public key (R.pack())
+    signal input ephPubKeyPacked;
 
     // Encryption key (P)
-    signal input publicKey[2];
+    signal input encPubKey[2];
 
-    // Ciphertexts
-    signal input c1Packed;
-    signal input c2[n];
+    // Message
+    signal input m[n];
 
-    // c1 = c1Packed.unpack()
-    signal c1[2];
+    // Ciphertext
+    signal input c[n];
+
+    // Ephemeral public key (R = r.G)
+    // INVARIANT: R = unpack(R.pack())
+    signal ephPubKey[2];
 
     // Base point (G) (https://eips.ethereum.org/EIPS/eip-2494)
     var BASE8[2] = [
@@ -101,39 +107,39 @@ template ElGamalEncryptMulti(n) {
     // Subgroup order (https://eips.ethereum.org/EIPS/eip-2494)
     var SUBGROUP_ORDER = 2736030358979909402780800718157159386076813972158567259200215660948447373041;
 
-    component rbits = Num2Bits(254);
-    rbits.in <== r;
+    component ephKeyBits = Num2Bits(254);
+    ephKeyBits.in <== ephKey;
 
     // Assert r < SUBGROUP_ORDER
     component comp = CompConstant(SUBGROUP_ORDER);
-    comp.in <== rbits.out;
+    comp.in <== ephKeyBits.out;
     comp.out === 0;
 
-    // Caclulate c1 = r.G
-    component rMulG = EscalarMulAny(254);
-    rMulG.e <== rbits.out;
-    rMulG.p <== BASE8;
-    c1 <== rMulG.out;
+    // Caclulate R = r.G
+    component ephKeyMulG = EscalarMulAny(254);
+    ephKeyMulG.e <== ephKeyBits.out;
+    ephKeyMulG.p <== BASE8;
+    ephPubKey <== ephKeyMulG.out;
 
-    // Assert c1Packed = c1.pack()
+    // // Assert ephPubKeyPacked = R.pack()
     component p2b = Point2Bits_Strict();
     component b2n = Bits2Num(256);
-    p2b.in <== c1;
+    p2b.in <== ephPubKey;
     b2n.in <== p2b.out;
-    c1Packed === b2n.out;
+    ephPubKeyPacked === b2n.out;
 
     // Calculate r.P
-    component rMulP = EscalarMulAny(254);
-    rMulP.e <== rbits.out;
-    rMulP.p <== publicKey;
+    component ephKeyMulP = EscalarMulAny(254);
+    ephKeyMulP.e <== ephKeyBits.out;
+    ephKeyMulP.p <== encPubKey;
 
     // Calculate h = H(r.P)
-    component rMulPHash = Poseidon(2);
-    rMulPHash.inputs[0] <== rMulP.out[0];
-    rMulPHash.inputs[1] <== rMulP.out[1];
+    component ephKeyMulPHash = Poseidon(2);
+    ephKeyMulPHash.inputs[0] <== ephKeyMulP.out[0];
+    ephKeyMulPHash.inputs[1] <== ephKeyMulP.out[1];
 
-    // Assert c2 = m + h
+    // Assert c = m + h
     for (var i = 0; i < n; i++) {
-        c2[i] === m[i] + rMulPHash.out;
+        c[i] === m[i] + ephKeyMulPHash.out;
     }
 }

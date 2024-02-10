@@ -5,15 +5,15 @@ include "./sumValues.circom";
 include "./fungibility.circom";
 
 template ZeroSumFungible(nIns, nOuts) {
-    // Assumed `publicFlow` is either 0 (inflow) or 1 (outflow)
-    signal input publicFlow;
+    // Assumed `pubFlow` is either 0 (inflow) or 1 (outflow)
+    signal input pubFlow;
     signal input assetId;
     signal input inAssetIds[nIns];
     signal input inValues[nIns];
     signal input outAssetIds[nOuts];
     signal input outValues[nOuts];
-    signal input publicAssetIds[nOuts];
-    signal input publicValues[nOuts];
+    signal input pubAssetIds[nOuts];
+    signal input pubValues[nOuts];
 
     // Sum input notes values with asset id equal to `assetId`
     component inSumValues = SumValues(nIns);
@@ -30,14 +30,14 @@ template ZeroSumFungible(nIns, nOuts) {
     // Sum public values with asset id equal to `assetId`
     component publicSumValues = SumValues(nOuts);
     publicSumValues.selectedAssetId <== assetId;
-    publicSumValues.assetIds <== publicAssetIds;
-    publicSumValues.values <== publicValues;
+    publicSumValues.assetIds <== pubAssetIds;
+    publicSumValues.values <== pubValues;
 
     component isFungible = IsFungible();
     isFungible.assetId <== assetId;
 
     component forceEqualIfFungible = ForceEqualIfEnabled();
     forceEqualIfFungible.enabled <== isFungible.out;
-    forceEqualIfFungible.in[0] <== inSumValues.out + (1 - publicFlow) * publicSumValues.out;
-    forceEqualIfFungible.in[1] <== outSumValues.out + publicFlow * publicSumValues.out;
+    forceEqualIfFungible.in[0] <== inSumValues.out + (1 - pubFlow) * publicSumValues.out;
+    forceEqualIfFungible.in[1] <== outSumValues.out + pubFlow * publicSumValues.out;
 }

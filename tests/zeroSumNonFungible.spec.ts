@@ -16,15 +16,15 @@ describe('zeroSumNonFungible', function () {
 
   it('should check zero sum for non-fungible asset', async function () {
     const inputs = {
-      publicFlow: 0,
+      pubFlow: 0,
       assetId: nft1,
       nftId: 4,
       inAssetIds: [nft1, token1, token1, token1],
       inValues: [4, 0, 0, 0],
       outAssetIds: [token1, nft1, token1, token1],
       outValues: [2, 4, 2, 0],
-      publicAssetIds: [token1, nft1, token1, token1],
-      publicValues: [0, 0, 2, 0],
+      pubAssetIds: [token1, nft1, token1, token1],
+      pubValues: [0, 0, 2, 0],
     };
 
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
@@ -34,15 +34,15 @@ describe('zeroSumNonFungible', function () {
 
   it('should check zero sum only for given non-fungible asset', async function () {
     const inputs = {
-      publicFlow: 0,
+      pubFlow: 0,
       assetId: nft1,
       nftId: 4,
       inAssetIds: [nft1, nft2, token1, token2],
       inValues: [4, 0, 0, 0],
       outAssetIds: [nft2, nft1, token1, token2],
       outValues: [0, 4, 4, 0],
-      publicAssetIds: [nft2, nft1, token1, token2],
-      publicValues: [0, 0, 2, 0],
+      pubAssetIds: [nft2, nft1, token1, token2],
+      pubValues: [0, 0, 2, 0],
     };
 
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
@@ -52,15 +52,15 @@ describe('zeroSumNonFungible', function () {
 
   it('should ignore zero sum check for fungible asset', async function () {
     const inputs = {
-      publicFlow: 0,
+      pubFlow: 0,
       assetId: token1,
       nftId: 4,
       inAssetIds: [nft1, nft1, token1, nft1],
       inValues: [4, 0, 3, 0],
       outAssetIds: [nft1, token1, nft1, nft1],
       outValues: [98, 3, 2, 0],
-      publicAssetIds: [nft1, token1, nft1, nft1],
-      publicValues: [0, 3, 2, 0],
+      pubAssetIds: [nft1, token1, nft1, nft1],
+      pubValues: [0, 3, 2, 0],
     };
 
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
@@ -70,15 +70,15 @@ describe('zeroSumNonFungible', function () {
 
   it('should check zero sum for public out-flow (withdraw)', async function () {
     const inputs = {
-      publicFlow: 1,
+      pubFlow: 1,
       assetId: nft1,
       nftId: 5,
       inAssetIds: [nft1, token1, nft2, token2],
       inValues: [5, 10, 0, 0],
       outAssetIds: [token1, token1, token1, nft1],
       outValues: [0, 2, 2, 0],
-      publicAssetIds: [token1, token1, token1, nft1],
-      publicValues: [5, 0, 8, 5],
+      pubAssetIds: [token1, token1, token1, nft1],
+      pubValues: [5, 0, 8, 5],
     };
 
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
@@ -88,15 +88,15 @@ describe('zeroSumNonFungible', function () {
 
   it('should fail zero sum check for incorrect values', async function () {
     const inputs = {
-      publicFlow: 0,
+      pubFlow: 0,
       assetId: nft1,
       nftId: 4,
       inAssetIds: [nft1, token1, nft2, token3],
       inValues: [4, 0, 4, 0],
       outAssetIds: [nft1, token1, token3, token2],
       outValues: [4, 2, 2, 0],
-      publicAssetIds: [nft1, token1, token3, token2],
-      publicValues: [0, 0, 0, 0],
+      pubAssetIds: [nft1, token1, token3, token2],
+      pubValues: [0, 0, 0, 0],
     };
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
 
@@ -110,22 +110,22 @@ describe('zeroSumNonFungible', function () {
     // Gaining value
     const inputs2 = {
       ...inputs,
-      publicValues: [4, 3, 2, 0],
+      pubValues: [4, 3, 2, 0],
     };
     await assert.isRejected(circuit.calculateWitness(inputs2, true), Error);
   });
 
   it('should fail zero sum check for incorrect values with negative flow', async function () {
     const inputs = {
-      publicFlow: 0,
+      pubFlow: 0,
       assetId: nft1,
       nftId: 4,
       inAssetIds: [nft1, token1, nft2, token3],
       inValues: [4, 0, 4, 0],
       outAssetIds: [nft1, token1, token3, token2],
       outValues: [4, 2, 2, 0],
-      publicAssetIds: [nft1, token1, token3, token2],
-      publicValues: [0, 0, 0, 0],
+      pubAssetIds: [nft1, token1, token3, token2],
+      pubValues: [0, 0, 0, 0],
     };
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
 
@@ -139,7 +139,7 @@ describe('zeroSumNonFungible', function () {
     // Gaining value
     const inputs2 = {
       ...inputs,
-      publicValues: [4, 3, 2, 0],
+      pubValues: [4, 3, 2, 0],
     };
     await assert.isRejected(circuit.calculateWitness(inputs2, true), Error);
   });

@@ -1,7 +1,7 @@
 import { expect } from 'chai';
-import { bytesToBigInt, slice, toBytes } from 'viem';
+import { bytesToBigInt, hexToBytes, slice, sliceHex, toBytes } from 'viem';
 import { Fr, Point } from '@zkfi-tech/babyjubjub';
-import { randomBigInt } from '@zkfi-tech/utils';
+import { hexFixed, randomBigInt } from '@zkfi-tech/utils';
 import { getCircuit } from './helpers';
 import elGamal from './helpers/elGamal';
 
@@ -25,24 +25,34 @@ describe('elGamal', () => {
 
   it('should verify encryption in circuit', async () => {
     const message = randomBigInt(31);
-    const privateKey = Fr.random(31).toBigInt();
-    const publicKey = Point.generate(privateKey);
-    const r = Fr.random(31).toBigInt();
-    const ciphertext = elGamal.encrypt(message, publicKey, r);
+    // const privateKey = Fr.random(31).val;
+    const privateKey = BigInt(
+      '196518003492553066139678792251928226250371319451207574335728467391529880337',
+    );
+    // console.log('privateKey', hexFixed(privateKey, 32));
 
-    const c1Packed = BigInt(slice(ciphertext, 0, 32));
-    const c2 = BigInt(slice(ciphertext, 32, 64));
+    const encPubKey = Point.generate(privateKey);
 
-    // Note: circuit expects c1Packed to be in big endian order whereas, Point.pack()
-    // returns it in little endian order
-    const c1PackedR = bytesToBigInt(toBytes(c1Packed).reverse());
+    // const ephKey = Fr.random(31).val;
+    const ephKey = BigInt(
+      '150570417234977204982824727512920177646362186483917498762815989539640043327',
+    );
+    const ephPubKey = Point.generate(ephKey);
 
+    const ciphertext = elGamal.encrypt(message, encPubKey, ephKey);
+
+    const ephPubKeyPacked = BigInt(sliceHex(ciphertext, 0, 32));
+    expect(Point.unpack(ephPubKeyPacked).eq(ephPubKey)).to.be.true;
+
+    const c1PackedR = bytesToBigInt(toBytes(ephPubKeyPacked).reverse());
+
+    const c = BigInt(sliceHex(ciphertext, 32, 64));
     const inputs = {
-      r,
+      ephKey,
+      ephPubKeyPacked: c1PackedR,
+      encPubKey: [encPubKey.x, encPubKey.y],
       m: message,
-      publicKey: [publicKey.x, publicKey.y],
-      c1Packed: c1PackedR,
-      c2,
+      c,
     };
 
     const witness = await circuit1.calculateWitness(inputs, true);
@@ -51,23 +61,26 @@ describe('elGamal', () => {
   it('should verify multi encryption in circuit', async () => {
     const messages = [randomBigInt(31), randomBigInt(31), randomBigInt(31)];
     const privateKey = Fr.random(31).toBigInt();
-    const publicKey = Point.generate(privateKey);
-    const r = Fr.random(31).toBigInt();
-    const ciphertexts = messages.map((m) => elGamal.encrypt(m, publicKey, r));
+    const encPubKey = Point.generate(privateKey);
+    const ephKey = Fr.random(31).toBigInt();
+    const ephPubKey = Point.generate(ephKey);
+    const ciphertexts = messages.map((m) => elGamal.encrypt(m, encPubKey, ephKey));
 
-    const c1Packed = BigInt(slice(ciphertexts[0], 0, 32));
-    const c2s = ciphertexts.map((c) => BigInt(slice(c, 32, 64)));
+    const ephPubKeyPacked = BigInt(slice(ciphertexts[0], 0, 32));
+    expect(Point.unpack(ephPubKeyPacked).eq(ephPubKey)).to.be.true;
+
+    const c = ciphertexts.map((c) => BigInt(slice(c, 32, 64)));
 
     // Note: circuit expects c1Packed to be in big endian order whereas, Point.pack()
     // returns it in little endian order
-    const c1PackedR = bytesToBigInt(toBytes(c1Packed).reverse());
+    const c1PackedR = bytesToBigInt(toBytes(ephPubKeyPacked).reverse());
 
     const inputs = {
-      r,
+      ephKey,
+      ephPubKeyPacked: c1PackedR,
+      encPubKey: [encPubKey.x, encPubKey.y],
       m: messages,
-      publicKey: [publicKey.x, publicKey.y],
-      c1Packed: c1PackedR,
-      c2: c2s,
+      c,
     };
 
     const witness = await circuit2.calculateWitness(inputs, true);

@@ -16,13 +16,13 @@ describe('complianceProof', function () {
   let circuit;
   let encPubKey;
   let ephKey;
-  let c1Packed;
+  let ephPubKeyPacked;
 
   before(async function () {
     circuit = await getCircuit('complianceProof');
     encPubKey = Point.generate(randomBigInt(31));
     ephKey = randomBigInt(31);
-    c1Packed = Point.generate(ephKey).pack();
+    ephPubKeyPacked = Point.generate(ephKey).pack();
   });
 
   it('should verify for correct compliance inputs', async function () {
@@ -33,14 +33,14 @@ describe('complianceProof', function () {
       const ciphertext = elGamal.encrypt(a, encPubKey, ephKey);
       const c1Packed_ = BigInt(slice(ciphertext, 0, 32));
       const c2 = BigInt(slice(ciphertext, 32, 64));
-      expect(c1Packed_).to.equal(BigInt(c1Packed));
+      expect(c1Packed_).to.equal(BigInt(ephPubKeyPacked));
       return c2;
     });
 
     const inputs = {
-      publicKey: [encPubKey.x, encPubKey.y],
       ephKey,
-      c1Packed: bytesToBigInt(toBytes(c1Packed).reverse()),
+      ephPubKeyPacked: bytesToBigInt(toBytes(ephPubKeyPacked).reverse()),
+      encPubKey: [encPubKey.x, encPubKey.y],
       assetIds,
       values,
       encAssets,

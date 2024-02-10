@@ -36,7 +36,7 @@ describe('transact', function () {
     const tree = getTree();
     const hash = randomHex(31);
     const sign = account.sign(hash);
-    const publicFlow = 1; // withdraw
+    const pubFlow = 1; // withdraw
     const publicValue = eth(5);
 
     const inNote1 = createNote({ owner, value: eth(10), assetId: ft1 });
@@ -48,7 +48,7 @@ describe('transact', function () {
     const outNote2 = createNote({ owner, value: eth(20), assetId: ft1 });
 
     const ephKey = randomBigInt(31);
-    const c1Packed = Point.generate(ephKey).pack();
+    const ephPubKey = Point.generate(ephKey).pack();
     const assets = [
       encodeAsset(outNote1.assetId, outNote1.value),
       encodeAsset(outNote2.assetId, outNote2.value),
@@ -63,9 +63,9 @@ describe('transact', function () {
       hash,
       signature: [sign.s, sign.e],
       // public
-      publicFlow,
-      publicAssetIds: [ft1, ft1],
-      publicValues: [publicValue, 0],
+      pubFlow,
+      pubAssetIds: [ft1, ft1],
+      pubValues: [publicValue, 0],
       // ins
       inPublicKey: publicKey,
       inAssetIds: [inNote1.assetId, inNote2.assetId],
@@ -80,9 +80,9 @@ describe('transact', function () {
       outValues: [outNote1.value, outNote2.value],
       outCommitments: [outNote1.commitment, outNote2.commitment],
       // encryptions
-      encPublicKey: encPublicKey.toArray(),
       ephKey,
-      c1Packed: bytesToBigInt(toBytes(c1Packed).reverse()),
+      ephPubKeyPacked: bytesToBigInt(toBytes(ephPubKey).reverse()),
+      encPubKey: encPublicKey.toArray(),
       encAssets,
     };
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
