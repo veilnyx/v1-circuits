@@ -1,4 +1,4 @@
-pragma circom 2.1.5;
+pragma circom 2.1.6;
 
 include "../../node_modules/circomlib/circuits/bitify.circom";
 include "../../node_modules/circomlib/circuits/babyjub.circom";
@@ -13,8 +13,8 @@ template ElGamalEncrypt() {
     // Ephemeral key, (r)
     signal input ephKey;
 
-    // Packed ephemeral public key (R.pack())
-    signal input ephPubKeyPacked;
+    // Ephemeral public key (R)
+    signal input ephPubKey[2];
 
     // Encryption key (P)
     signal input encPubKey[2];
@@ -24,10 +24,6 @@ template ElGamalEncrypt() {
 
     // Ciphertext
     signal input c;
-
-    // Ephemeral public key (R = r.G)
-    // INVARIANT: R = unpack(R.pack())
-    signal ephPubKey[2];
 
     // Base point (G) (https://eips.ethereum.org/EIPS/eip-2494)
     var BASE8[2] = [
@@ -50,14 +46,7 @@ template ElGamalEncrypt() {
     component ephKeyMulG = EscalarMulAny(254);
     ephKeyMulG.e <== ephKeyBits.out;
     ephKeyMulG.p <== BASE8;
-    ephPubKey <== ephKeyMulG.out;
-
-
-    component p2b = Point2Bits_Strict();
-    component b2n = Bits2Num(256);
-    p2b.in <== ephPubKey;
-    b2n.in <== p2b.out;
-    ephPubKeyPacked === b2n.out;
+    ephPubKey === ephKeyMulG.out;
 
     // Calculate r.P
     component ephKeyMulP = EscalarMulAny(254);
@@ -76,14 +65,14 @@ template ElGamalEncrypt() {
 // Re-uses randomness to encrypt multiple messages
 // See: https://www.iacr.org/archive/pkc2003/25670085/25670085.pdf
 // @todo Assess security of this scheme
-//  - What if m = 0 (e.g. for dummy notes). h = c2 in that case. @todo fix
+//  - What if m = 0 (e.g. for dummy notes). h = c in that case. @todo fix
 //      - change def of dummy notes: dummy note has assetId=0 & any value
 template ElGamalEncryptMulti(n) {
     // Ephemeral key, (r)
     signal input ephKey;
 
-    // Packed ephemeral public key (R.pack())
-    signal input ephPubKeyPacked;
+    // Ephemeral public key (R)
+    signal input ephPubKey[2];
 
     // Encryption key (P)
     signal input encPubKey[2];
@@ -93,10 +82,6 @@ template ElGamalEncryptMulti(n) {
 
     // Ciphertext
     signal input c[n];
-
-    // Ephemeral public key (R = r.G)
-    // INVARIANT: R = unpack(R.pack())
-    signal ephPubKey[2];
 
     // Base point (G) (https://eips.ethereum.org/EIPS/eip-2494)
     var BASE8[2] = [
@@ -119,14 +104,7 @@ template ElGamalEncryptMulti(n) {
     component ephKeyMulG = EscalarMulAny(254);
     ephKeyMulG.e <== ephKeyBits.out;
     ephKeyMulG.p <== BASE8;
-    ephPubKey <== ephKeyMulG.out;
-
-    // // Assert ephPubKeyPacked = R.pack()
-    component p2b = Point2Bits_Strict();
-    component b2n = Bits2Num(256);
-    p2b.in <== ephPubKey;
-    b2n.in <== p2b.out;
-    ephPubKeyPacked === b2n.out;
+    ephPubKey === ephKeyMulG.out;
 
     // Calculate r.P
     component ephKeyMulP = EscalarMulAny(254);

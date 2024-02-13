@@ -40,7 +40,7 @@ template Transact(nLevels, nIns, nOuts) {
 
     // Encrypted data
     signal input ephKey;
-    signal input ephPubKeyPacked;
+    signal input ephPubKey[2];
     signal input encPubKey[2];
     signal input encAssets[nOuts];
 
@@ -172,7 +172,7 @@ template Transact(nLevels, nIns, nOuts) {
     // Compliance encryption checks
     component complianceProof = ComplianceProof(nOuts);
     complianceProof.ephKey <== ephKey;
-    complianceProof.ephPubKeyPacked <== ephPubKeyPacked;
+    complianceProof.ephPubKey <== ephPubKey;
     complianceProof.encPubKey <== encPubKey;
     complianceProof.assetIds <== outAssetIds;
     complianceProof.values <== outValues;

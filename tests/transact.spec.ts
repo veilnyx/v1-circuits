@@ -1,14 +1,15 @@
 import { assert } from 'chai';
 import { MerkleTree } from 'fixed-merkle-tree';
-import { bytesToBigInt, parseEther, slice, toBytes } from 'viem';
-import { Fr, Point, poseidonHash } from '@zkfi-tech/babyjubjub';
+import { parseEther, slice } from 'viem';
+import { Fr, Point, elGamal, poseidonHash } from '@zkfi-tech/babyjubjub';
 import { randomBigInt, randomHex } from '@zkfi-tech/utils';
 import { createNote, getCircuit, randomAccount } from './helpers';
 import { encodeAsset } from './helpers/asset';
-import elGamal from './helpers/elGamal';
 
 const eth = (n: number) => parseEther(`${n}`);
-const getTree = () => new MerkleTree(20, [], { hashFunction: (a, b) => poseidonHash([a, b]) });
+const treeDepth = 24;
+const getTree = () =>
+  new MerkleTree(treeDepth, [], { hashFunction: (a, b) => poseidonHash([a, b]) });
 
 describe('transact', function () {
   this.timeout(8000);
@@ -48,7 +49,8 @@ describe('transact', function () {
     const outNote2 = createNote({ owner, value: eth(20), assetId: ft1 });
 
     const ephKey = randomBigInt(31);
-    const ephPubKey = Point.generate(ephKey).pack();
+    const ephPubKey = Point.generate(ephKey);
+
     const assets = [
       encodeAsset(outNote1.assetId, outNote1.value),
       encodeAsset(outNote2.assetId, outNote2.value),
@@ -81,10 +83,11 @@ describe('transact', function () {
       outCommitments: [outNote1.commitment, outNote2.commitment],
       // encryptions
       ephKey,
-      ephPubKeyPacked: bytesToBigInt(toBytes(ephPubKey).reverse()),
+      ephPubKey: [ephPubKey.x, ephPubKey.y],
       encPubKey: encPublicKey.toArray(),
       encAssets,
     };
+
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
     const witness = await circuit.calculateWitness(inputs, true);
     await circuit.checkConstraints(witness);
