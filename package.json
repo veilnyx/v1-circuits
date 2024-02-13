@@ -20,7 +20,7 @@
     "@types/shelljs": "^0.8.12",
     "@typescript-eslint/eslint-plugin": "^5.48.2",
     "@typescript-eslint/parser": "^5.48.2",
-    "@zkfi-tech/babyjubjub": "^1.0.1",
+    "@zkfi-tech/babyjubjub": "^1.0.2",
     "@zkfi-tech/shared-types": "^1.0.0",
     "@zkfi-tech/utils": "^1.0.0",
     "chai": "^4.3.7",
