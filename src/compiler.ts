@@ -26,11 +26,9 @@ class Compiler {
 
   generateKeys({ r1cs, pTauPath, out }: { r1cs: string; pTauPath: string; out: string }) {
     const outDir = out.split('/').slice(0, -1).join('/');
-    const name = out.split('/').pop()?.split('.')[0] as string;
-    shell.exec(`snarkjs groth16 setup ${r1cs} ${pTauPath} ${outDir}/tmp_${name}.zkey`);
-    shell.exec(
-      `echo "test" | snarkjs zkey contribute ${outDir}/tmp_${name}.zkey ${outDir}/${name}.zkey`,
-    );
+    shell.exec(`snarkjs groth16 setup ${r1cs} ${pTauPath} ${outDir}/tmp_keys.zkey`);
+    shell.exec(`echo "test" | snarkjs zkey contribute ${outDir}/tmp_keys.zkey ${outDir}/keys.zkey`);
+    shell.exec(`snarkjs zkey export verificationkey ${outDir}/keys.zkey ${outDir}/vKey.json`);
   }
 
   async ejectSolidityVerifier({ zKey, out }: { zKey: string; out: string }) {

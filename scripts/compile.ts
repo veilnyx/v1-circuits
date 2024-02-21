@@ -8,15 +8,12 @@ function capitalize(str: string) {
 }
 
 const getCircuitPath = () => {
-  let filename = process.argv[2];
-
-  if (!filename) {
-    throw new Error(`File not specified`);
+  const id = process.argv[2] as string;
+  if (!id) {
+    throw new Error(`Circuit id not specified`);
   }
 
-  if (!filename.endsWith('.circom')) {
-    filename = `${filename}.circom`;
-  }
+  let filename = `main/${id}/circuit.circom`;
 
   const filePath = `${config.srcDir}/${filename}`;
 
@@ -40,18 +37,20 @@ const getPTauFile = () => {
 const main = async () => {
   shell.exec(`circom -V`);
   const circuitPath = getCircuitPath();
+  const code = circuitPath.split('/')[2] as string;
+  console.log(`Compiling circuit: ${code}\n`);
+
   const pTauPath = getPTauFile();
-  const name = circuitPath.split('/').pop()?.split('.')[0] as string;
-  const outDir = `${config.outDir}/${name}`;
+  const outDir = `${config.outDir}/${code}`;
 
   const compiler = new Compiler();
   compiler.compile({ src: circuitPath, outDir });
 
-  const r1cs = `${outDir}/${name}.r1cs`;
-  const outZKey = `${outDir}/${name}.zkey`;
+  const r1cs = `${outDir}/circuit.r1cs`;
+  const outZKey = `${outDir}/keys.zkey`;
   compiler.generateKeys({ r1cs, pTauPath, out: outZKey });
 
-  const outSol = `${outDir}/Verifier${capitalize(name)}.sol`;
+  const outSol = `${outDir}/Verifier${code}.sol`;
   await compiler.ejectSolidityVerifier({ zKey: outZKey, out: outSol });
 };
 
