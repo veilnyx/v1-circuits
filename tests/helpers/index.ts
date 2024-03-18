@@ -1,19 +1,17 @@
 import { assert, expect } from 'chai';
 import { BigNumber, BigNumberish, utils } from 'ethers';
-import { Point, signSchnorr, Fp, Fr } from '@zkfi-tech/babyjubjub';
-//@ts-ignore
-// import { poseidon } from 'xcircomlib';
-import { fieldsSize, Fr as Frc } from './circuit';
-import { schnorr } from './schnorr';
+import { BytesLike } from '@zkfi-tech/shared-types';
+import { Point, schnorr, Fr, poseidonHash } from '@zkfi-tech/babyjubjub';
+import { Fr as Frc } from './circuit';
 
 export * from './circuit';
 export * from './note';
 
-export const TxType = {
-  WITHDRAW: 0,
-  DEPOSIT: 1,
-  TRANSFER: 2,
-};
+// export const TxType = {
+//   WITHDRAW: 0,
+//   DEPOSIT: 1,
+//   TRANSFER: 2,
+// };
 
 export const randomBN = (nBytes: number) => {
   return BigNumber.from(utils.randomBytes(nBytes));
@@ -21,12 +19,6 @@ export const randomBN = (nBytes: number) => {
 
 export const randomHex = (nBytes: number) => {
   return randomBN(nBytes).toHexString();
-};
-
-export const getPublicKeyFromPrivateKey = (privateKey: BigNumberish) => {
-  const pkBuffer = BigNumber.from(privateKey).toBigInt();
-  const pubKey = schnorr.prv2pub(pkBuffer);
-  return ['0x' + pubKey[0].toString(16), '0x' + pubKey[1].toString(16)];
 };
 
 export const randomKeyPair = () => {
@@ -46,8 +38,11 @@ export const randomAccount = () => {
   return {
     signer,
     viewer,
-    sign(message) {
-      return signSchnorr({ privateKey: this.signer.privateKey, message });
+    sign(message: BytesLike) {
+      return schnorr.sign(message, signer.privateKey);
+    },
+    getStealthAddress(blinding: bigint | string) {
+      return poseidonHash([this.signer.publicKey.x, this.signer.publicKey.y, blinding]);
     },
   };
 };
