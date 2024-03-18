@@ -34,8 +34,9 @@ template Transact(nLevels, nIns, nOuts) {
 
     // Output notes data
     signal input outAssetIds[nIns];
-    signal input outOwners[nOuts];
+    signal input outPublicKeys[nOuts][2];
     signal input outValues[nOuts];
+    signal input outBlindings[nOuts];
     signal input outCommitments[nOuts];
 
     // Encrypted data
@@ -95,9 +96,16 @@ template Transact(nLevels, nIns, nOuts) {
 
     // Limit output values to be within 224 bits
     component limitRange[nOuts];
-    for (var i = 0; i < nOuts; i++) { 
+    for (var i = 0; i < nOuts; i++) {
         limitRange[i] = LimitRange(MAX_BITS_VALUE);
         limitRange[i].in <== outValues[i];
+    }
+
+    component outOwners[nOuts];
+    for (var i = 0; i < nOuts; i++) {
+        outOwners[i] = StealthAddress();
+        outOwners[i].publicKey <== outPublicKeys[i];
+        outOwners[i].blinding <== outBlindings[i];
     }
 
     // Calculate output commitments and assert that they are equal to publicly
@@ -106,7 +114,7 @@ template Transact(nLevels, nIns, nOuts) {
     for (var i = 0; i < nOuts; i++) {
         outCommitmentsHasher[i] = Commitment();
         outCommitmentsHasher[i].assetId <== outAssetIds[i];
-        outCommitmentsHasher[i].owner <== outOwners[i];
+        outCommitmentsHasher[i].owner <== outOwners[i].out;
         outCommitmentsHasher[i].value <== outValues[i];
         outCommitmentsHasher[i].out === outCommitments[i];
     }
