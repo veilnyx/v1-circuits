@@ -15,9 +15,10 @@ describe('transact', function () {
   this.timeout(8000);
 
   let circuit;
-  let account;
-  let publicKey;
-  let owner;
+  let sender;
+  let receiver;
+  let senderPubKey;
+  let receiverPubKey;
   let blinding;
   let encPublicKey;
 
@@ -26,27 +27,157 @@ describe('transact', function () {
 
   before(async function () {
     circuit = await getCircuit('transact2I2O');
-    account = randomAccount();
+    sender = randomAccount();
+    receiver = randomAccount();
     blinding = Fr.random(32).toHex();
-    owner = account.getStealthAddress(blinding);
-    publicKey = account.signer.publicKey.toArray();
+    // owner = sender.getStealthAddress(blinding);
+    senderPubKey = sender.signer.publicKey.toArray();
+    receiverPubKey = receiver.signer.publicKey.toArray();
     encPublicKey = Point.generate(randomBigInt(31));
   });
 
-  it('should transact with correct proofs', async function () {
+  it('should transact a fresh deposit with correct proofs', async function () {
     const tree = getTree();
     const hash = randomHex(31);
-    const sign = account.sign(hash);
-    const pubFlow = 1; // withdraw
-    const publicValue = eth(5);
+    const sign = sender.sign(hash);
+    const pubFlow = 0; // deposit
+    const pubValue = eth(5);
+    const senderXAddr = sender.getStealthAddress(blinding);
+    // const receiverXAddr = receiver.getStealthAddress(blinding);
 
-    const inNote1 = createNote({ owner, value: eth(10), assetId: ft1 });
-    const inNote2 = createNote({ owner, value: eth(20), assetId: ft1 });
+    const inNote1 = createNote({ owner: senderXAddr, value: eth(0), assetId: 0 });
+    const inNote2 = createNote({ owner: senderXAddr, value: eth(0), assetId: 0 });
     tree.bulkInsert([inNote1.commitment, inNote2.commitment]);
     const nullifier1 = poseidonHash([0, inNote1.commitment, blinding]);
     const nullifier2 = poseidonHash([1, inNote2.commitment, blinding]);
-    const outNote1 = createNote({ owner, value: eth(5), assetId: ft1 });
-    const outNote2 = createNote({ owner, value: eth(20), assetId: ft1 });
+    const outNote1 = createNote({ owner: senderXAddr, value: eth(0), assetId: ft1 });
+    const outNote2 = createNote({ owner: senderXAddr, value: eth(5), assetId: ft1 });
+
+    const ephKey = randomBigInt(31);
+    const ephPubKey = Point.generate(ephKey);
+
+    const assets = [
+      encodeAsset(outNote1.assetId, outNote1.value),
+      encodeAsset(outNote2.assetId, outNote2.value),
+    ];
+    const encAssets = assets.map((a) => {
+      const ciphertext = elGamal.encrypt(a, encPublicKey, ephKey);
+      return BigInt(slice(ciphertext, 32, 64));
+    });
+
+    const inputs = {
+      merkleRoot: tree.root.toString(),
+      hash,
+      signature: [sign.s, sign.e],
+      // public
+      pubFlow,
+      pubAssetIds: [ft1, ft1],
+      pubValues: [pubValue, 0],
+      // ins
+      inPublicKey: senderPubKey,
+      inAssetIds: [inNote1.assetId, inNote2.assetId],
+      inValues: [inNote1.value, inNote2.value],
+      inBlindings: [blinding, blinding],
+      inNullifiers: [nullifier1, nullifier2],
+      inPathIndices: [0, 1],
+      inPathElements: [tree.path(0).pathElements, tree.path(1).pathElements],
+      // outs
+      outAssetIds: [outNote1.assetId, outNote2.assetId],
+      outPublicKeys: [senderPubKey, senderPubKey],
+      outValues: [outNote1.value, outNote2.value],
+      outBlindings: [blinding, blinding],
+      outCommitments: [outNote1.commitment, outNote2.commitment],
+      // encryptions
+      ephKey,
+      ephPubKey: [ephPubKey.x, ephPubKey.y],
+      encPubKey: encPublicKey.toArray(),
+      encAssets,
+    };
+
+    // await assert.isFulfilled(circuit.calculateWitness(inputs, true));
+    const witness = await circuit.calculateWitness(inputs, true);
+    // await circuit.checkConstraints(witness);
+  });
+
+  it('should transact a deposit with correct proofs', async function () {
+    const tree = getTree();
+    const hash = randomHex(31);
+    const sign = sender.sign(hash);
+    const pubFlow = 0; // deposit
+    const pubValue = eth(5);
+    const senderXAddr = sender.getStealthAddress(blinding);
+    const receiverXAddr = receiver.getStealthAddress(blinding);
+
+    const inNote1 = createNote({ owner: senderXAddr, value: eth(10), assetId: ft1 });
+    const inNote2 = createNote({ owner: senderXAddr, value: eth(20), assetId: ft1 });
+    tree.bulkInsert([inNote1.commitment, inNote2.commitment]);
+    const nullifier1 = poseidonHash([0, inNote1.commitment, blinding]);
+    const nullifier2 = poseidonHash([1, inNote2.commitment, blinding]);
+    const outNote1 = createNote({ owner: senderXAddr, value: eth(15), assetId: ft1 });
+    const outNote2 = createNote({ owner: receiverXAddr, value: eth(20), assetId: ft1 });
+
+    const ephKey = randomBigInt(31);
+    const ephPubKey = Point.generate(ephKey);
+
+    const assets = [
+      encodeAsset(outNote1.assetId, outNote1.value),
+      encodeAsset(outNote2.assetId, outNote2.value),
+    ];
+    const encAssets = assets.map((a) => {
+      const ciphertext = elGamal.encrypt(a, encPublicKey, ephKey);
+      return BigInt(slice(ciphertext, 32, 64));
+    });
+
+    const inputs = {
+      merkleRoot: tree.root.toString(),
+      hash,
+      signature: [sign.s, sign.e],
+      // public
+      pubFlow,
+      pubAssetIds: [ft1, ft1],
+      pubValues: [pubValue, 0],
+      // ins
+      inPublicKey: senderPubKey,
+      inAssetIds: [inNote1.assetId, inNote2.assetId],
+      inValues: [inNote1.value, inNote2.value],
+      inBlindings: [blinding, blinding],
+      inNullifiers: [nullifier1, nullifier2],
+      inPathIndices: [0, 1],
+      inPathElements: [tree.path(0).pathElements, tree.path(1).pathElements],
+      // outs
+      outAssetIds: [outNote1.assetId, outNote2.assetId],
+      outPublicKeys: [senderPubKey, receiverPubKey],
+      outValues: [outNote1.value, outNote2.value],
+      outBlindings: [blinding, blinding],
+      outCommitments: [outNote1.commitment, outNote2.commitment],
+      // encryptions
+      ephKey,
+      ephPubKey: [ephPubKey.x, ephPubKey.y],
+      encPubKey: encPublicKey.toArray(),
+      encAssets,
+    };
+
+    await assert.isFulfilled(circuit.calculateWitness(inputs, true));
+    const witness = await circuit.calculateWitness(inputs, true);
+    await circuit.checkConstraints(witness);
+  });
+
+  it('should transact a transfer with correct proofs', async function () {
+    const tree = getTree();
+    const hash = randomHex(31);
+    const sign = sender.sign(hash);
+    const pubFlow = 1; // withdraw
+    const publicValue = eth(0);
+    const senderXAddr = sender.getStealthAddress(blinding);
+    const receiverXAddr = receiver.getStealthAddress(blinding);
+
+    const inNote1 = createNote({ owner: senderXAddr, value: eth(10), assetId: ft1 });
+    const inNote2 = createNote({ owner: senderXAddr, value: eth(20), assetId: ft1 });
+    tree.bulkInsert([inNote1.commitment, inNote2.commitment]);
+    const nullifier1 = poseidonHash([0, inNote1.commitment, blinding]);
+    const nullifier2 = poseidonHash([1, inNote2.commitment, blinding]);
+    const outNote1 = createNote({ owner: senderXAddr, value: eth(10), assetId: ft1 });
+    const outNote2 = createNote({ owner: receiverXAddr, value: eth(20), assetId: ft1 });
 
     const ephKey = randomBigInt(31);
     const ephPubKey = Point.generate(ephKey);
@@ -69,7 +200,7 @@ describe('transact', function () {
       pubAssetIds: [ft1, ft1],
       pubValues: [publicValue, 0],
       // ins
-      inPublicKey: publicKey,
+      inPublicKey: senderPubKey,
       inAssetIds: [inNote1.assetId, inNote2.assetId],
       inValues: [inNote1.value, inNote2.value],
       inBlindings: [blinding, blinding],
@@ -78,8 +209,72 @@ describe('transact', function () {
       inPathElements: [tree.path(0).pathElements, tree.path(1).pathElements],
       // outs
       outAssetIds: [outNote1.assetId, outNote2.assetId],
-      outOwners: [outNote1.owner, outNote2.owner],
+      outPublicKeys: [senderPubKey, receiverPubKey],
       outValues: [outNote1.value, outNote2.value],
+      outBlindings: [blinding, blinding],
+      outCommitments: [outNote1.commitment, outNote2.commitment],
+      // encryptions
+      ephKey,
+      ephPubKey: [ephPubKey.x, ephPubKey.y],
+      encPubKey: encPublicKey.toArray(),
+      encAssets,
+    };
+
+    await assert.isFulfilled(circuit.calculateWitness(inputs, true));
+    const witness = await circuit.calculateWitness(inputs, true);
+    await circuit.checkConstraints(witness);
+  });
+
+  it('should transact a withdraw with correct proofs', async function () {
+    const tree = getTree();
+    const hash = randomHex(31);
+    const sign = sender.sign(hash);
+    const pubFlow = 1; // withdraw
+    const publicValue = eth(5);
+    const senderXAddr = sender.getStealthAddress(blinding);
+    const receiverXAddr = receiver.getStealthAddress(blinding);
+
+    const inNote1 = createNote({ owner: senderXAddr, value: eth(10), assetId: ft1 });
+    const inNote2 = createNote({ owner: senderXAddr, value: eth(20), assetId: ft1 });
+    tree.bulkInsert([inNote1.commitment, inNote2.commitment]);
+    const nullifier1 = poseidonHash([0, inNote1.commitment, blinding]);
+    const nullifier2 = poseidonHash([1, inNote2.commitment, blinding]);
+    const outNote1 = createNote({ owner: senderXAddr, value: eth(5), assetId: ft1 });
+    const outNote2 = createNote({ owner: receiverXAddr, value: eth(20), assetId: ft1 });
+
+    const ephKey = randomBigInt(31);
+    const ephPubKey = Point.generate(ephKey);
+
+    const assets = [
+      encodeAsset(outNote1.assetId, outNote1.value),
+      encodeAsset(outNote2.assetId, outNote2.value),
+    ];
+    const encAssets = assets.map((a) => {
+      const ciphertext = elGamal.encrypt(a, encPublicKey, ephKey);
+      return BigInt(slice(ciphertext, 32, 64));
+    });
+
+    const inputs = {
+      merkleRoot: tree.root.toString(),
+      hash,
+      signature: [sign.s, sign.e],
+      // public
+      pubFlow,
+      pubAssetIds: [ft1, ft1],
+      pubValues: [publicValue, 0],
+      // ins
+      inPublicKey: senderPubKey,
+      inAssetIds: [inNote1.assetId, inNote2.assetId],
+      inValues: [inNote1.value, inNote2.value],
+      inBlindings: [blinding, blinding],
+      inNullifiers: [nullifier1, nullifier2],
+      inPathIndices: [0, 1],
+      inPathElements: [tree.path(0).pathElements, tree.path(1).pathElements],
+      // outs
+      outAssetIds: [outNote1.assetId, outNote2.assetId],
+      outPublicKeys: [senderPubKey, receiverPubKey],
+      outValues: [outNote1.value, outNote2.value],
+      outBlindings: [blinding, blinding],
       outCommitments: [outNote1.commitment, outNote2.commitment],
       // encryptions
       ephKey,
