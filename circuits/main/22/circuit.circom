@@ -12,5 +12,6 @@ component main { public [
     outCommitments, 
     encPubKey, 
     ephPubKey,
-    encAssets
+    encAssets,
+    encBlindings
 ] } = Transact(24, 2, 2);

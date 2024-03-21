@@ -64,6 +64,10 @@ describe('transact', function () {
       const ciphertext = elGamal.encrypt(a, encPublicKey, ephKey);
       return BigInt(slice(ciphertext, 32, 64));
     });
+    const encBlindings = [blinding, blinding].map((b) => {
+      const ciphertext = elGamal.encrypt(b, encPublicKey, ephKey);
+      return BigInt(slice(ciphertext, 32, 64));
+    });
 
     const inputs = {
       merkleRoot: tree.root.toString(),
@@ -92,6 +96,7 @@ describe('transact', function () {
       ephPubKey: [ephPubKey.x, ephPubKey.y],
       encPubKey: encPublicKey.toArray(),
       encAssets,
+      encBlindings,
     };
 
     // await assert.isFulfilled(circuit.calculateWitness(inputs, true));
@@ -127,6 +132,10 @@ describe('transact', function () {
       const ciphertext = elGamal.encrypt(a, encPublicKey, ephKey);
       return BigInt(slice(ciphertext, 32, 64));
     });
+    const encBlindings = [blinding, blinding].map((b) => {
+      const ciphertext = elGamal.encrypt(b, encPublicKey, ephKey);
+      return BigInt(slice(ciphertext, 32, 64));
+    });
 
     const inputs = {
       merkleRoot: tree.root.toString(),
@@ -155,6 +164,7 @@ describe('transact', function () {
       ephPubKey: [ephPubKey.x, ephPubKey.y],
       encPubKey: encPublicKey.toArray(),
       encAssets,
+      encBlindings,
     };
 
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
@@ -190,6 +200,10 @@ describe('transact', function () {
       const ciphertext = elGamal.encrypt(a, encPublicKey, ephKey);
       return BigInt(slice(ciphertext, 32, 64));
     });
+    const encBlindings = [blinding, blinding].map((b) => {
+      const ciphertext = elGamal.encrypt(b, encPublicKey, ephKey);
+      return BigInt(slice(ciphertext, 32, 64));
+    });
 
     const inputs = {
       merkleRoot: tree.root.toString(),
@@ -218,6 +232,7 @@ describe('transact', function () {
       ephPubKey: [ephPubKey.x, ephPubKey.y],
       encPubKey: encPublicKey.toArray(),
       encAssets,
+      encBlindings,
     };
 
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
@@ -253,6 +268,10 @@ describe('transact', function () {
       const ciphertext = elGamal.encrypt(a, encPublicKey, ephKey);
       return BigInt(slice(ciphertext, 32, 64));
     });
+    const encBlindings = [blinding, blinding].map((b) => {
+      const ciphertext = elGamal.encrypt(b, encPublicKey, ephKey);
+      return BigInt(slice(ciphertext, 32, 64));
+    });
 
     const inputs = {
       merkleRoot: tree.root.toString(),
@@ -281,6 +300,7 @@ describe('transact', function () {
       ephPubKey: [ephPubKey.x, ephPubKey.y],
       encPubKey: encPublicKey.toArray(),
       encAssets,
+      encBlindings,
     };
 
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));

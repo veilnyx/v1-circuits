@@ -25,11 +25,22 @@ describe('complianceProof', function () {
   });
 
   it('should verify for correct compliance inputs', async function () {
-    const values = [randomBigInt(16), randomBigInt(16), randomBigInt(16), randomBigInt(16)];
     const assetIds = [t1, t1, t2, t3];
+    const values = assetIds.map((_) => randomBigInt(16));
+    const blindings = assetIds.map((_) => randomBigInt(31));
     const assets = values.map((v, i) => encodeAsset(assetIds[i] as HexString, v));
+
     const encAssets = assets.map((a) => {
       const ciphertext = elGamal.encrypt(a, encPubKey, ephKey);
+      const c1Packed_ = BigInt(slice(ciphertext, 0, 32));
+      const c2 = BigInt(slice(ciphertext, 32, 64));
+      const c1 = Point.unpack(c1Packed_);
+      expect(c1.eq(ephPubKey)).to.be.true;
+      return c2;
+    });
+
+    const encBlindings = blindings.map((b) => {
+      const ciphertext = elGamal.encrypt(b, encPubKey, ephKey);
       const c1Packed_ = BigInt(slice(ciphertext, 0, 32));
       const c2 = BigInt(slice(ciphertext, 32, 64));
       const c1 = Point.unpack(c1Packed_);
@@ -43,7 +54,9 @@ describe('complianceProof', function () {
       encPubKey: [encPubKey.x, encPubKey.y],
       assetIds,
       values,
+      blindings,
       encAssets,
+      encBlindings,
     };
 
     const witness = await circuit.calculateWitness(inputs);
