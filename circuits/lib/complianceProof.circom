@@ -8,10 +8,12 @@ template ComplianceProof(n) {
     signal input ephPubKey[2];
     signal input encPubKey[2];
     signal input assetIds[n];
+    signal input publicKeyXs[n];
     signal input values[n];
     signal input blindings[n];
     signal input encAssets[n];
     signal input encBlindings[n];
+    signal input encPublicKeyXs[n];
 
     component assetEncoder[n];
     for (var i = 0; i < n; i++) {
@@ -20,7 +22,7 @@ template ComplianceProof(n) {
         assetEncoder[i].value <== values[i];
     }
 
-    component encVerifier = ElGamalEncryptMulti(2*n);
+    component encVerifier = ElGamalEncryptMulti(3*n);
     encVerifier.ephKey <== ephKey;
     encVerifier.ephPubKey <== ephPubKey;
     encVerifier.encPubKey <== encPubKey;
@@ -33,5 +35,10 @@ template ComplianceProof(n) {
     for (var i = 0; i < n; i++) {
         encVerifier.m[n+i] <== blindings[i];
         encVerifier.c[n+i] <== encBlindings[i];
+    }
+
+    for (var i = 0; i < n; i++) {
+        encVerifier.m[2*n+i] <== publicKeyXs[i];
+        encVerifier.c[2*n+i] <== encPublicKeyXs[i];
     }
 }

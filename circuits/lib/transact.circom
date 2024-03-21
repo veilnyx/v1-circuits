@@ -45,6 +45,7 @@ template Transact(nLevels, nIns, nOuts) {
     signal input ephPubKey[2];
     signal input encAssets[nOuts];
     signal input encBlindings[nOuts];
+    signal input encPublicKeyXs[nOuts];
 
     var MAX_BITS_VALUE = 224;
 
@@ -185,7 +186,11 @@ template Transact(nLevels, nIns, nOuts) {
     complianceProof.encPubKey <== encPubKey;
     complianceProof.assetIds <== outAssetIds;
     complianceProof.values <== outValues;
+    for (var i = 0; i < nOuts; i++) {
+        complianceProof.publicKeyXs[i] <== outPublicKeys[i][0];
+    }
     complianceProof.blindings <== outBlindings;
     complianceProof.encAssets <== encAssets;
+    complianceProof.encPublicKeyXs <== encPublicKeyXs;
     complianceProof.encBlindings <== encBlindings;
 }

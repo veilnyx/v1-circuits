@@ -13,5 +13,6 @@ component main { public [
     encPubKey, 
     ephPubKey,
     encAssets,
-    encBlindings
+    encBlindings,
+    encPublicKeyXs,
 ] } = Transact(24, 2, 2);
