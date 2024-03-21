@@ -40,9 +40,9 @@ template Transact(nLevels, nIns, nOuts) {
     signal input outCommitments[nOuts];
 
     // Encrypted data
+    signal input encPubKey[2];
     signal input ephKey;
     signal input ephPubKey[2];
-    signal input encPubKey[2];
     signal input encAssets[nOuts];
 
     var MAX_BITS_VALUE = 224;

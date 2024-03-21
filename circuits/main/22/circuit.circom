@@ -10,7 +10,7 @@ component main { public [
     pubValues, 
     inNullifiers, 
     outCommitments, 
-    ephPubKey,
     encPubKey, 
+    ephPubKey,
     encAssets
 ] } = Transact(24, 2, 2);
