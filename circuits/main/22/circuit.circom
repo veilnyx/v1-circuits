@@ -15,4 +15,4 @@ component main { public [
     encAssets,
     encBlindings,
     encPublicKeyXs
-]} = Transact(24, 2, 2);
+]} = Transact(32, 2, 2);

@@ -7,7 +7,7 @@ import { NoteData, createNote, getCircuit, randomAccount } from './helpers';
 import { encodeAsset } from './helpers/asset';
 
 const eth = (n: number) => parseEther(`${n}`);
-const treeDepth = 24;
+const treeDepth = 32;
 const getTree = () =>
   new MerkleTree(treeDepth, [], { hashFunction: (a, b) => poseidonHash([a, b]) });
 
@@ -24,7 +24,7 @@ describe('transact', function () {
   let ft1 = 0x010001;
 
   before(async function () {
-    circuit = await getCircuit('transact2I2O');
+    circuit = await getCircuit('transact22');
     sender = randomAccount();
     receiver = randomAccount();
     senderPubKey = sender.signer.publicKey.toArray();

@@ -3,7 +3,7 @@ import { poseidonHash } from '@zkfi-tech/babyjubjub';
 import { MerkleTree } from 'fixed-merkle-tree';
 import { getCircuit, randomHex } from './helpers';
 
-const getTree = () => new MerkleTree(20, [], { hashFunction: (a, b) => poseidonHash([a, b]) });
+const getTree = () => new MerkleTree(32, [], { hashFunction: (a, b) => poseidonHash([a, b]) });
 const randomLeaf = () => poseidonHash(randomHex(32));
 
 describe('merkleProof', function () {
@@ -11,7 +11,7 @@ describe('merkleProof', function () {
   let circuit;
 
   before(async function () {
-    circuit = await getCircuit('merkleProof20');
+    circuit = await getCircuit('merkleProof32');
   });
 
   it('should verify correct inclusion path when enabled', async function () {
