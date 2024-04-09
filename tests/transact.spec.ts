@@ -48,19 +48,30 @@ describe('transact', function () {
     const hash = randomHex(31);
     const sign = sender.sign(hash);
 
+    const beneficiaryBlinding = randomBigInt(31);
+    const beneficiary = poseidonHash([senderPubKey[0], senderPubKey[1], beneficiaryBlinding]);
+
     const ephKey = randomBigInt(31);
     const ephPubKey = Point.generate(ephKey);
 
+    const encInPublicKeyX = BigInt(
+      slice(elGamal.encrypt(senderPubKey[0], encPublicKey, ephKey), 32, 64),
+    );
+    const encBeneficiaryBlinding =
+      BigInt(beneficiary) === 0n
+        ? 0
+        : BigInt(slice(elGamal.encrypt(beneficiaryBlinding, encPublicKey, ephKey), 32, 64));
+
     const assets = outNotes.map((note: any) => encodeAsset(note.assetId, note.value));
-    const encAssets = assets.map((a) => {
+    const encOutAssets = assets.map((a) => {
       const ciphertext = elGamal.encrypt(a, encPublicKey, ephKey);
       return BigInt(slice(ciphertext, 32, 64));
     });
-    const encBlindings = outNotes.map((n) => {
+    const encOutBlindings = outNotes.map((n) => {
       const ciphertext = elGamal.encrypt(n.blinding, encPublicKey, ephKey);
       return BigInt(slice(ciphertext, 32, 64));
     });
-    const encPublicKeyXs = outNotes.map((n) => {
+    const encOutPublicKeyXs = outNotes.map((n) => {
       const ciphertext = elGamal.encrypt(n.pubKey[0], encPublicKey, ephKey);
       return BigInt(slice(ciphertext, 32, 64));
     });
@@ -87,13 +98,18 @@ describe('transact', function () {
       outValues: outNotes.map((note: any) => note.value),
       outBlindings: outNotes.map((note: any) => note.blinding),
       outCommitments: outNotes.map((note: any) => note.commitment),
+      // beneficiary
+      beneficiary,
+      beneficiaryBlinding,
       // encryptions
       ephKey,
       ephPubKey: [ephPubKey.x, ephPubKey.y],
       encPubKey: encPublicKey.toArray(),
-      encAssets,
-      encBlindings,
-      encPublicKeyXs,
+      encInPublicKeyX,
+      encBeneficiaryBlinding,
+      encOutAssets,
+      encOutBlindings,
+      encOutPublicKeyXs,
     };
     return inputs;
   };

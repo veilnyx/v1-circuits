@@ -46,12 +46,15 @@ describe('elGamal', () => {
     const ciphertexts = messages.map((m) => elGamal.encrypt(m, encPubKey, ephKey));
     const c = ciphertexts.map((c) => BigInt(slice(c, 32, 64)));
 
+    const enabled = messages.map(() => 1);
+
     const inputs = {
       ephKey,
       ephPubKey: [ephPubKey.x, ephPubKey.y],
       encPubKey: [encPubKey.x, encPubKey.y],
       m: messages,
       c,
+      enabled,
     };
 
     await assert.isFulfilled(circuit2.calculateWitness(inputs, true));

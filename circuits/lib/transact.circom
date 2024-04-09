@@ -8,6 +8,7 @@ include "./merkleProof.circom";
 include "./ownershipProof.circom";
 include "./zeroSumFungible.circom";
 include "./zeroSumNonFungible.circom";
+include "./beneficiaryCheck.circom";
 include "./complianceProof.circom";
 
 template Transact(nLevels, nIns, nOuts) {
@@ -39,13 +40,19 @@ template Transact(nLevels, nIns, nOuts) {
     signal input outBlindings[nOuts];
     signal input outCommitments[nOuts];
 
+    // Stealth addresses for any deposits to shielded account
+    signal input beneficiary;
+    signal input beneficiaryBlinding;
+
     // Encrypted data
     signal input encPubKey[2];
     signal input ephKey;
     signal input ephPubKey[2];
-    signal input encAssets[nOuts];
-    signal input encBlindings[nOuts];
-    signal input encPublicKeyXs[nOuts];
+    signal input encInPublicKeyX;
+    signal input encBeneficiaryBlinding;
+    signal input encOutAssets[nOuts];
+    signal input encOutBlindings[nOuts];
+    signal input encOutPublicKeyXs[nOuts];
 
     var MAX_BITS_VALUE = 224;
 
@@ -179,18 +186,31 @@ template Transact(nLevels, nIns, nOuts) {
         outZeroSumNonFungible[i].pubAssetIds <== pubAssetIds;
     }
 
+    // Beneficiary stealth address check
+    component beneficiaryCheck = BeneficiaryCheck();
+    beneficiaryCheck.publicKey <== inPublicKey;
+    beneficiaryCheck.beneficiary <== beneficiary;
+    beneficiaryCheck.blinding <== beneficiaryBlinding;
+
     // Compliance encryption checks
     component complianceProof = ComplianceProof(nOuts);
     complianceProof.ephKey <== ephKey;
     complianceProof.ephPubKey <== ephPubKey;
     complianceProof.encPubKey <== encPubKey;
-    complianceProof.assetIds <== outAssetIds;
-    complianceProof.values <== outValues;
+
+    complianceProof.inPublicKeyX <== inPublicKey[0];
+    complianceProof.beneficiary <== beneficiary;
+    complianceProof.beneficiaryBlinding <== beneficiaryBlinding;
+    complianceProof.outAssetIds <== outAssetIds;
     for (var i = 0; i < nOuts; i++) {
-        complianceProof.publicKeyXs[i] <== outPublicKeys[i][0];
+        complianceProof.outPublicKeyXs[i] <== outPublicKeys[i][0];
     }
-    complianceProof.blindings <== outBlindings;
-    complianceProof.encAssets <== encAssets;
-    complianceProof.encPublicKeyXs <== encPublicKeyXs;
-    complianceProof.encBlindings <== encBlindings;
+    complianceProof.outValues <== outValues;
+    complianceProof.outBlindings <== outBlindings;
+    
+    complianceProof.encInPublicKeyX <== encInPublicKeyX;
+    complianceProof.encBeneficiaryBlinding <== encBeneficiaryBlinding;
+    complianceProof.encOutAssets <== encOutAssets;
+    complianceProof.encOutPublicKeyXs <== encOutPublicKeyXs;
+    complianceProof.encOutBlindings <== encOutBlindings;
 }

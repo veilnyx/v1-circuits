@@ -77,6 +77,9 @@ template ElGamalEncryptMulti(n) {
     // Encryption key (P)
     signal input encPubKey[2];
 
+    // Enable switches
+    signal input enabled[n];
+
     // Message
     signal input m[n];
 
@@ -117,7 +120,12 @@ template ElGamalEncryptMulti(n) {
     ephKeyMulPHash.inputs[1] <== ephKeyMulP.out[1];
 
     // Assert c = m + h
+    component checkEq[n];
     for (var i = 0; i < n; i++) {
-        c[i] === m[i] + ephKeyMulPHash.out;
+        checkEq[i] = ForceEqualIfEnabled();
+        checkEq[i].enabled <== enabled[i];
+        checkEq[i].in[0] <== c[i];
+        checkEq[i].in[1] <== m[i] + ephKeyMulPHash.out;
     }
 }
+

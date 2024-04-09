@@ -7,11 +7,7 @@ import { Fr as Frc } from './circuit';
 export * from './circuit';
 export * from './note';
 
-// export const TxType = {
-//   WITHDRAW: 0,
-//   DEPOSIT: 1,
-//   TRANSFER: 2,
-// };
+export const MSG_ASSERT_FAILED = 'Assert Failed';
 
 export const randomBN = (nBytes: number) => {
   return BigNumber.from(utils.randomBytes(nBytes));
