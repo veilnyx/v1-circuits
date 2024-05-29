@@ -34,7 +34,7 @@ template Transact(nLevels, nIns, nOuts) {
     signal input inPathElements[nIns][nLevels];
 
     // Output notes data
-    signal input outAssetIds[nIns];
+    signal input outAssetIds[nOuts];
     signal input outPublicKeys[nOuts][2];
     signal input outValues[nOuts];
     signal input outBlindings[nOuts];
