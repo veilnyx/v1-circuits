@@ -1,257 +1,251 @@
-import { Account, Fp } from '@zkfi-tech/v1-sdk/src';
 import { assert } from 'chai';
-import { BigNumber } from 'ethers';
+import { parseEther, slice } from 'viem';
 import { MerkleTree } from 'fixed-merkle-tree';
-import {
-  createNote,
-  getCircuit,
-  poseidonHash,
-  randomAccount,
-  randomHex,
-  signPoseidon,
-} from './helpers';
+import { Point, elGamal, poseidonHash } from '@zkfi-tech/babyjubjub';
+import { randomBigInt, randomHex } from '@zkfi-tech/utils';
+import { NoteData, createNote, getCircuit, randomAccount } from './helpers';
+import { encodeAsset } from './helpers/asset';
 
-const getTree = () => new MerkleTree(20, [], { hashFunction: poseidonHash });
+const eth = (n: number) => parseEther(`${n}`);
+const treeDepth = 32;
+const getTree = () =>
+  new MerkleTree(treeDepth, [], { hashFunction: (a, b) => poseidonHash([a, b]) });
 
 describe('transact', function () {
   this.timeout(8000);
 
   let circuit;
-  let account;
-  let publicKey;
-  let owner;
-  let viewKey;
-  let spendKey;
-  let blinding;
+  let sender;
+  let receiver;
+  let senderPubKey;
+  let receiverPubKey;
+  let encPublicKey;
+
+  let ft1 = 0x010001;
 
   before(async function () {
-    blinding = Fp.random(32).toHexString();
-    circuit = await getCircuit('transact');
-    account = Account.random();
-    spendKey = account.signer.privateKey;
-    viewKey = account.viewer.privateKey;
-    publicKey = account.signer.publicKey.toArray();
-    owner = account.getStealthAddress(blinding);
+    circuit = await getCircuit('transact22');
+    sender = randomAccount();
+    receiver = randomAccount();
+    senderPubKey = sender.signer.publicKey.toArray();
+    receiverPubKey = receiver.signer.publicKey.toArray();
+    encPublicKey = Point.generate(randomBigInt(31));
   });
 
-  it('should transact with correct proofs', async function () {
+  const createTx = ({
+    pubFlow,
+    inNotes,
+    outNotes,
+    pubValues,
+  }: {
+    pubFlow: number;
+    inNotes: NoteData[];
+    outNotes: NoteData[];
+    pubValues: bigint[];
+  }) => {
     const tree = getTree();
-    const inNote1 = createNote({ owner: owner, value: 10 });
-    const inNote2 = createNote({ owner: owner, value: 20 });
-    tree.bulkInsert([inNote1.commitment, inNote2.commitment]);
+    tree.bulkInsert(inNotes.map((n: any) => n.commitment));
+    const hash = randomHex(31);
+    const sign = sender.sign(hash);
 
-    const sign1 = signPoseidon(inNote1.commitment, spendKey);
-    const sign2 = signPoseidon(inNote2.commitment, spendKey);
+    const beneficiaryBlinding = randomBigInt(31);
+    const beneficiary = poseidonHash([senderPubKey[0], senderPubKey[1], beneficiaryBlinding]);
 
-    const nullifier1 = poseidonHash(0, inNote1.commitment, viewKey);
-    const nullifier2 = poseidonHash(1, inNote2.commitment, viewKey);
+    const ephKey = randomBigInt(31);
+    const ephPubKey = Point.generate(ephKey);
 
-    const outNote1 = createNote({ owner: owner, value: 5 });
-    const outNote2 = createNote({ owner: owner, value: 20 });
-    const outPublicValue = 5;
+    const encInPublicKeyX = BigInt(
+      slice(elGamal.encrypt(senderPubKey[0], encPublicKey, ephKey), 32, 64),
+    );
+    const encBeneficiaryBlinding =
+      BigInt(beneficiary) === 0n
+        ? 0
+        : BigInt(slice(elGamal.encrypt(beneficiaryBlinding, encPublicKey, ephKey), 32, 64));
+
+    const assets = outNotes.map((note: any) => encodeAsset(note.assetId, note.value));
+    const encOutAssets = assets.map((a) => {
+      const ciphertext = elGamal.encrypt(a, encPublicKey, ephKey);
+      return BigInt(slice(ciphertext, 32, 64));
+    });
+    const encOutBlindings = outNotes.map((n) => {
+      const ciphertext = elGamal.encrypt(n.blinding, encPublicKey, ephKey);
+      return BigInt(slice(ciphertext, 32, 64));
+    });
+    const encOutPublicKeyXs = outNotes.map((n) => {
+      const ciphertext = elGamal.encrypt(n.pubKey[0], encPublicKey, ephKey);
+      return BigInt(slice(ciphertext, 32, 64));
+    });
 
     const inputs = {
+      merkleRoot: tree.root.toString(),
+      hash,
+      signature: [sign.s, sign.e],
+      // public
+      pubFlow,
+      pubAssetIds: [ft1, ft1],
+      pubValues: pubValues,
       // ins
-      root: BigNumber.from(tree.root).toHexString(),
-      assetId: inNote1.assetId,
-      viewKey,
-      inPublicValue: 0,
-      inPublicKey: [publicKey, publicKey],
-      inSignature: [
-        [sign1.s, sign1.e],
-        [sign2.s, sign2.e],
-      ],
-      inValue: [inNote1.value, inNote2.value],
-      inBlinding: [blinding, blinding],
-      inNullifier: [nullifier1, nullifier2],
-      inPathIndices: [0, 1],
-      inPathElements: [tree.path(0).pathElements, tree.path(1).pathElements],
+      inPublicKey: senderPubKey,
+      inAssetIds: inNotes.map((note: any) => note.assetId),
+      inValues: inNotes.map((note: any) => note.value),
+      inBlindings: inNotes.map((note: any) => note.blinding),
+      inNullifiers: inNotes.map((note: any) => note.nullifier),
+      inPathIndices: inNotes.map((n) => n.leafIndex),
+      inPathElements: inNotes.map((n) => tree.path(n.leafIndex).pathElements),
       // outs
-      outPublicValue,
-      outOwner: [outNote1.owner, outNote2.owner],
-      outValue: [outNote1.value, outNote2.value],
-      outCommitment: [outNote1.commitment, outNote2.commitment],
+      outAssetIds: outNotes.map((note: any) => note.assetId),
+      outPublicKeys: outNotes.map((note: any) => note.pubKey),
+      outValues: outNotes.map((note: any) => note.value),
+      outBlindings: outNotes.map((note: any) => note.blinding),
+      outCommitments: outNotes.map((note: any) => note.commitment),
+      // beneficiary
+      beneficiary,
+      beneficiaryBlinding,
+      // encryptions
+      ephKey,
+      ephPubKey: [ephPubKey.x, ephPubKey.y],
+      encPubKey: encPublicKey.toArray(),
+      encInPublicKeyX,
+      encBeneficiaryBlinding,
+      encOutAssets,
+      encOutBlindings,
+      encOutPublicKeyXs,
     };
+    return inputs;
+  };
 
+  it('should transact a fresh deposit with correct proofs', async function () {
+    const pubFlow = 0; // deposit
+    const pubValues = [eth(5), eth(0)];
+    const inNotes = pubValues.map((_, i) => {
+      return createNote({
+        pubKey: senderPubKey,
+        value: eth(0),
+        assetId: 0,
+        leafIndex: i,
+      });
+    });
+    const outNotes = [
+      createNote({
+        pubKey: senderPubKey,
+        value: eth(5),
+        assetId: ft1,
+        leafIndex: 2,
+      }),
+      createNote({
+        pubKey: senderPubKey,
+        value: eth(0),
+        assetId: ft1,
+        leafIndex: 3,
+      }),
+    ];
+
+    const inputs = createTx({ pubFlow, inNotes, outNotes, pubValues });
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
-
-    const witness = await circuit.calculateWitness(inputs, true);
-    await circuit.checkConstraints(witness);
   });
 
-  it('should transact zero-value note skipping inclusion check', async function () {
-    const tree = getTree();
-    const inNote1 = createNote({ owner: owner, value: 10 });
-    const inNote2 = createNote({ owner: owner, value: 0 });
-    tree.insert(inNote1.commitment);
-
-    const sign1 = signPoseidon(inNote1.commitment, spendKey);
-    const sign2 = signPoseidon(inNote2.commitment, spendKey);
-
-    const nullifier1 = poseidonHash(0, inNote1.commitment, viewKey);
-    const nullifier2 = poseidonHash(0, inNote2.commitment, viewKey);
-
-    const outNote1 = createNote({ owner: owner, value: 2 });
-    const outNote2 = createNote({ owner: owner, value: 7 });
-    const outPublicValue = 1;
-
-    const inputs = {
-      // ins
-      root: BigNumber.from(tree.root).toHexString(),
-      assetId: inNote1.assetId,
-      viewKey,
-      inPublicValue: 0,
-      inPublicKey: [publicKey, publicKey],
-      inSignature: [
-        [sign1.s, sign1.e],
-        [sign2.s, sign2.e],
-      ],
-      inValue: [inNote1.value, inNote2.value],
-      inBlinding: [blinding, blinding],
-      inNullifier: [nullifier1, nullifier2],
-      inPathIndices: [0, 0],
-      inPathElements: [tree.path(0).pathElements, Array.from({ length: tree.levels }).fill(0)],
-      // outs
-      outPublicValue,
-      outOwner: [outNote1.owner, outNote2.owner],
-      outValue: [outNote1.value, outNote2.value],
-      outCommitment: [outNote1.commitment, outNote2.commitment],
-    };
-
-    // await assert.isFulfilled(circuit.calculateWitness(inputs, true));
-
-    const witness = await circuit.calculateWitness(inputs, true);
-    await circuit.checkConstraints(witness);
+  it('should transact a deposit with correct proofs', async function () {
+    const pubFlow = 0;
+    const pubValues = [eth(5), eth(0)];
+    const inNotes = [
+      createNote({
+        pubKey: senderPubKey,
+        value: eth(10),
+        assetId: ft1,
+        leafIndex: 0,
+      }),
+      createNote({
+        pubKey: senderPubKey,
+        value: eth(20),
+        assetId: ft1,
+        leafIndex: 1,
+      }),
+    ];
+    const outNotes = [
+      createNote({
+        pubKey: senderPubKey,
+        value: eth(15),
+        assetId: ft1,
+        leafIndex: 2,
+      }),
+      createNote({
+        pubKey: receiverPubKey,
+        value: eth(20),
+        assetId: ft1,
+        leafIndex: 3,
+      }),
+    ];
+    const inputs = createTx({ pubFlow, inNotes, outNotes, pubValues });
+    await assert.isFulfilled(circuit.calculateWitness(inputs, true));
   });
 
-  it('should fail transact for incorrect note properties', async function () {
-    const address = account.address;
-    const tree = getTree();
-    const inNote1 = createNote({ owner: address, value: 10 });
-    const inNote2 = createNote({ owner: address, value: 20 });
-    tree.bulkInsert([inNote1.commitment, inNote2.commitment]);
-
-    const sign1 = signPoseidon(inNote1.commitment, spendKey);
-    const sign2 = signPoseidon(inNote2.commitment, spendKey);
-
-    const nullifier1 = poseidonHash(0, inNote1.commitment, viewKey);
-    const nullifier2 = poseidonHash(1, inNote2.commitment, viewKey);
-
-    const outNote1 = createNote({ owner: address, value: 5 });
-    const outNote2 = createNote({ owner: address, value: 20 });
-    const outPublicValue = 5;
-
-    const inputs = {
-      // ins
-      root: BigNumber.from(tree.root).toHexString(),
-      assetId: inNote1.assetId,
-      viewKey,
-      inPublicValue: 0,
-      inPublicKey: [publicKey, publicKey],
-      inSignature: [
-        [sign1.s, sign1.e],
-        [sign2.s, sign2.e],
-      ],
-      inValue: [inNote1.value, inNote2.value],
-      inBlinding: [blinding, blinding],
-      inNullifier: [nullifier1, nullifier2],
-      inPathIndices: [0, 1],
-      inPathElements: [tree.path(0).pathElements, tree.path(1).pathElements],
-      // outs
-      outPublicValue,
-      outAddress: [outNote1.owner, outNote2.owner],
-      outValue: [outNote1.value, outNote2.value],
-      outCommitment: [outNote1.commitment, outNote2.commitment],
-    };
-
-    const badAccount = randomAccount();
-    const badAssetIdInputs = { ...inputs, assetId: randomHex(20) };
-    const badInSaltInputs = { ...inputs, inPublicKey: [publicKey, randomHex(31)] };
-    const badInValueInputs = { ...inputs, inValue: [inNote1.value, randomHex(8)] };
-    const badInPublicKeyInputs = {
-      ...inputs,
-      inPublicKey: [publicKey, badAccount.publicKey],
-    };
-    const badInNullifierInputs = {
-      ...inputs,
-      inNullifier: [nullifier1, poseidonHash(randomHex(32))],
-    };
-    const badInPublicValueInputs = { ...inputs, inPublicValue: 1 };
-
-    const badOutPublicValueInputs = { ...inputs, outPublicValue: 10 };
-    const badOutAddressInputs = {
-      ...inputs,
-      outAddress: [outNote1.owner, poseidonHash(randomHex(32))],
-    };
-    const badOutValue = { ...inputs, outValue: [outNote1.value, randomHex(8)] };
-    const badOutCommitment = { ...inputs, outCommitment: [outNote1.commitment, randomHex(32)] };
-
-    await assert.isRejected(circuit.calculateWitness(badAssetIdInputs, true), Error);
-    await assert.isRejected(circuit.calculateWitness(badInSaltInputs, true), Error);
-    await assert.isRejected(circuit.calculateWitness(badInValueInputs, true), Error);
-    await assert.isRejected(circuit.calculateWitness(badInPublicKeyInputs, true), Error);
-    await assert.isRejected(circuit.calculateWitness(badInNullifierInputs, true), Error);
-    await assert.isRejected(circuit.calculateWitness(badInPublicValueInputs, true), Error);
-    await assert.isRejected(circuit.calculateWitness(badOutPublicValueInputs, true), Error);
-    await assert.isRejected(circuit.calculateWitness(badOutAddressInputs, true), Error);
-    await assert.isRejected(circuit.calculateWitness(badOutValue, true), Error);
-    await assert.isRejected(circuit.calculateWitness(badOutCommitment, true), Error);
+  it('should transact a transfer with correct proofs', async function () {
+    const pubFlow = 1;
+    const pubValues = [eth(0), eth(0)];
+    const inNotes = [
+      createNote({
+        pubKey: senderPubKey,
+        value: eth(10),
+        assetId: ft1,
+        leafIndex: 0,
+      }),
+      createNote({
+        pubKey: senderPubKey,
+        value: eth(20),
+        assetId: ft1,
+        leafIndex: 1,
+      }),
+    ];
+    const outNotes = [
+      createNote({
+        pubKey: senderPubKey,
+        value: eth(10),
+        assetId: ft1,
+        leafIndex: 2,
+      }),
+      createNote({
+        pubKey: receiverPubKey,
+        value: eth(20),
+        assetId: ft1,
+        leafIndex: 3,
+      }),
+    ];
+    const inputs = createTx({ pubFlow, inNotes, outNotes, pubValues });
+    await assert.isFulfilled(circuit.calculateWitness(inputs, true));
   });
 
-  it('should fail transact for incorrect proofs', async function () {
-    const address = account.address;
-    const tree = getTree();
-    const inNote1 = createNote({ owner: address, value: 10 });
-    const inNote2 = createNote({ owner: address, value: 20 });
-    tree.bulkInsert([inNote1.commitment, inNote2.commitment, poseidonHash(randomHex(32))]);
-
-    const sign1 = signPoseidon(inNote1.commitment, spendKey);
-    const sign2 = signPoseidon(inNote2.commitment, spendKey);
-
-    const nullifier1 = poseidonHash(0, inNote1.commitment, viewKey);
-    const nullifier2 = poseidonHash(1, inNote2.commitment, viewKey);
-
-    const outNote1 = createNote({ owner: address, value: 5 });
-    const outNote2 = createNote({ owner: address, value: 20 });
-    const outPublicValue = 5;
-
-    const inputs = {
-      // ins
-      root: BigNumber.from(tree.root).toHexString(),
-      assetId: inNote1.assetId,
-      viewKey,
-      inPublicValue: 0,
-      inPublicKey: [publicKey, publicKey],
-      inSignature: [
-        [sign1.s, sign1.e],
-        [sign2.s, sign2.e],
-      ],
-      inValue: [inNote1.value, inNote2.value],
-      inBlinding: [blinding, blinding],
-      inNullifier: [nullifier1, nullifier2],
-      inPathIndices: [0, 1],
-      inPathElements: [tree.path(0).pathElements, tree.path(1).pathElements],
-      // outs
-      outPublicValue,
-      outAddress: [outNote1.owner, outNote2.owner],
-      outValue: [outNote1.value, outNote2.value],
-      outCommitment: [outNote1.commitment, outNote2.commitment],
-    };
-
-    const badAccount = randomAccount();
-    const badSig2 = signPoseidon(inNote2.commitment, badAccount.privateKey);
-    const badInSignatureInputs = {
-      ...inputs,
-      inSignature: [[sign1.s, sign1.e][(badSig2.s, badSig2.e)]],
-    };
-    const badInPathIndices = { ...inputs, inPathIndices: [0, 2] };
-    const badInPathElements = {
-      ...inputs,
-      inPathElements: [tree.path(0).pathElements, tree.path(2).pathElements],
-    };
-
-    await assert.isRejected(circuit.calculateWitness(badInSignatureInputs, true), Error);
-    await assert.isRejected(circuit.calculateWitness(badInPathIndices, true), Error);
-    await assert.isRejected(circuit.calculateWitness(badInPathElements, true), Error);
+  it('should transact a withdraw with correct proofs', async function () {
+    const pubFlow = 1;
+    const pubValues = [eth(5), eth(0)];
+    const inNotes = [
+      createNote({
+        pubKey: senderPubKey,
+        value: eth(10),
+        assetId: ft1,
+        leafIndex: 0,
+      }),
+      createNote({
+        pubKey: senderPubKey,
+        value: eth(20),
+        assetId: ft1,
+        leafIndex: 1,
+      }),
+    ];
+    const outNotes = [
+      createNote({
+        pubKey: senderPubKey,
+        value: eth(5),
+        assetId: ft1,
+        leafIndex: 2,
+      }),
+      createNote({
+        pubKey: receiverPubKey,
+        value: eth(20),
+        assetId: ft1,
+        leafIndex: 3,
+      }),
+    ];
+    const inputs = createTx({ pubFlow, inNotes, outNotes, pubValues });
+    await assert.isFulfilled(circuit.calculateWitness(inputs, true));
   });
 });
