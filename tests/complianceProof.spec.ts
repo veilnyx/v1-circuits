@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { padHex, slice, sliceHex, zeroHash } from 'viem';
 import { Point, elGamal, poseidonHash } from '@zkfi-tech/babyjubjub';
-import { randomBigInt } from '@zkfi-tech/utils';
+import { randomBigInt, randomHex } from '@zkfi-tech/utils';
 import { HexString } from '@zkfi-tech/shared-types';
 import { encodeAsset } from './helpers/asset';
 import { getCircuit } from './helpers';
@@ -26,19 +26,18 @@ describe('complianceProof', function () {
 
   it('should verify for correct compliance inputs', async function () {
     const inPublicKey = Point.generate(randomBigInt(31)).toArray();
-    const inPublicKeyX = inPublicKey[0];
+    const viewPrivateKey = randomHex(31);
+    const inAddress = poseidonHash([inPublicKey[0], inPublicKey[1], viewPrivateKey]);
     const beneficiaryBlinding = randomBigInt(31);
     const beneficiary = poseidonHash([inPublicKey[0], inPublicKey[1], beneficiaryBlinding]);
 
     const outAssetIds = [t1, t1, t2, t3];
     const outValues = outAssetIds.map((_) => randomBigInt(16));
     const outBlindings = outAssetIds.map((_) => randomBigInt(31));
-    const outPublicKeyXs = outAssetIds.map((_) => randomBigInt(31));
+    const outAddresses = outAssetIds.map((_) => randomBigInt(31));
     const outAssets = outValues.map((v, i) => encodeAsset(outAssetIds[i] as HexString, v));
 
-    const encInPublicKeyX = BigInt(
-      sliceHex(elGamal.encrypt(inPublicKeyX, encPubKey, ephKey), 32, 64),
-    );
+    const encInAddress = BigInt(sliceHex(elGamal.encrypt(inAddress, encPubKey, ephKey), 32, 64));
     const encBeneficiaryBlinding = BigInt(
       sliceHex(elGamal.encrypt(beneficiaryBlinding, encPubKey, ephKey), 32, 64),
     );
@@ -61,7 +60,7 @@ describe('complianceProof', function () {
       return c2;
     });
 
-    const encOutPublicKeyXs = outPublicKeyXs.map((x) => {
+    const encOutAddresses = outAddresses.map((x) => {
       const ciphertext = elGamal.encrypt(x, encPubKey, ephKey);
       const c1Packed_ = BigInt(slice(ciphertext, 0, 32));
       const c2 = BigInt(slice(ciphertext, 32, 64));
@@ -74,18 +73,18 @@ describe('complianceProof', function () {
       ephKey,
       ephPubKey: [ephPubKey.x, ephPubKey.y],
       encPubKey: [encPubKey.x, encPubKey.y],
-      inPublicKeyX,
+      inAddress,
       beneficiary,
       beneficiaryBlinding,
       outAssetIds,
       outValues,
-      outPublicKeyXs,
+      outAddresses,
       outBlindings,
-      encInPublicKeyX,
+      encInAddress,
       encBeneficiaryBlinding,
       encOutAssets,
       encOutBlindings,
-      encOutPublicKeyXs,
+      encOutAddresses,
     };
 
     const witness = await circuit.calculateWitness(inputs);
@@ -94,19 +93,18 @@ describe('complianceProof', function () {
 
   it('should skip beneficiary blinding encryption check if blinding is zero', async function () {
     const inPublicKey = Point.generate(randomBigInt(31)).toArray();
-    const inPublicKeyX = inPublicKey[0];
+    const viewPrivateKey = randomHex(31);
+    const inAddress = poseidonHash([inPublicKey[0], inPublicKey[1], viewPrivateKey]);
     const beneficiaryBlinding = randomBigInt(31);
     const beneficiary = zeroHash;
 
     const outAssetIds = [t1, t1, t2, t3];
     const outValues = outAssetIds.map((_) => randomBigInt(16));
     const outBlindings = outAssetIds.map((_) => randomBigInt(31));
-    const outPublicKeyXs = outAssetIds.map((_) => randomBigInt(31));
+    const outAddresses = outAssetIds.map((_) => randomBigInt(31));
     const outAssets = outValues.map((v, i) => encodeAsset(outAssetIds[i] as HexString, v));
 
-    const encInPublicKeyX = BigInt(
-      sliceHex(elGamal.encrypt(inPublicKeyX, encPubKey, ephKey), 32, 64),
-    );
+    const encInAddress = BigInt(sliceHex(elGamal.encrypt(inAddress, encPubKey, ephKey), 32, 64));
     const encBeneficiaryBlinding = padHex('0x00', { size: 32 });
 
     const encOutAssets = outAssets.map((a) => {
@@ -127,7 +125,7 @@ describe('complianceProof', function () {
       return c2;
     });
 
-    const encOutPublicKeyXs = outPublicKeyXs.map((x) => {
+    const encOutAddresses = outAddresses.map((x) => {
       const ciphertext = elGamal.encrypt(x, encPubKey, ephKey);
       const c1Packed_ = BigInt(slice(ciphertext, 0, 32));
       const c2 = BigInt(slice(ciphertext, 32, 64));
@@ -140,18 +138,18 @@ describe('complianceProof', function () {
       ephKey,
       ephPubKey: [ephPubKey.x, ephPubKey.y],
       encPubKey: [encPubKey.x, encPubKey.y],
-      inPublicKeyX,
+      inAddress,
       beneficiary,
       beneficiaryBlinding,
       outAssetIds,
       outValues,
-      outPublicKeyXs,
+      outAddresses,
       outBlindings,
-      encInPublicKeyX,
+      encInAddress,
       encBeneficiaryBlinding,
       encOutAssets,
       encOutBlindings,
-      encOutPublicKeyXs,
+      encOutAddresses,
     };
 
     const witness = await circuit.calculateWitness(inputs);
