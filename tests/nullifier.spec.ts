@@ -1,5 +1,6 @@
-import { poseidonHash } from '@zkfi-tech/babyjubjub';
+import { Point, poseidonHash } from '@zkfi-tech/babyjubjub';
 import { expectEqFe, getCircuit, randomHex } from './helpers';
+import { randomBigInt } from '@zkfi-tech/utils';
 
 describe('nullifier', function () {
   this.timeout(8000);
@@ -7,17 +8,17 @@ describe('nullifier', function () {
   it('correctly calculates nullifier', async function () {
     const circuit = await getCircuit('nullifier');
 
-    const pathIndices = 5;
-    const commitment = poseidonHash(randomHex(32));
-    const blinding = randomHex(31);
+    const pathIndices = randomBigInt(8);
+    const viewPrivateKey = randomHex(31);
+    const revokerPublicKey = Point.generate(randomBigInt(31));
 
     const inputs = {
       pathIndices,
-      commitment,
-      blinding,
+      viewPrivateKey,
+      revokerPublicKey: revokerPublicKey.toArray(),
     };
 
-    const nullifier = poseidonHash([pathIndices, commitment, blinding]);
+    const nullifier = poseidonHash([pathIndices, revokerPublicKey.mul(viewPrivateKey).x]);
 
     const witness = await circuit.calculateWitness(inputs);
 

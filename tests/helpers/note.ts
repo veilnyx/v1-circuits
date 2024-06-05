@@ -1,34 +1,48 @@
 import { poseidonHash } from '@zkfi-tech/babyjubjub';
 import { randomBigInt } from '@zkfi-tech/utils';
+import { Hex } from 'viem';
 
 export type NoteData = {
   owner: bigint;
+  address: Hex;
   assetId: number;
   value: bigint;
   commitment: bigint;
   nullifier: bigint;
   blinding: bigint;
-  pubKey: bigint[];
   leafIndex: number;
 };
 
 export const createNote = ({
   value,
-  pubKey,
+  account,
   assetId,
   blinding,
   leafIndex,
+  revokerPublicKey,
 }: {
-  pubKey: bigint[];
+  account: any;
   value: bigint;
   assetId: number;
   blinding?: bigint;
   leafIndex: number;
+  revokerPublicKey;
 }): NoteData => {
   const r = blinding || randomBigInt(31);
-  const owner = BigInt(poseidonHash([pubKey[0], pubKey[1], r]));
+  const owner = BigInt(poseidonHash([account.address, revokerPublicKey.x, revokerPublicKey.y, r]));
   const commitment = BigInt(poseidonHash([assetId, owner, value]));
-  const nullifier = BigInt(poseidonHash([leafIndex, commitment, r]));
+  const nullifier = BigInt(
+    poseidonHash([leafIndex, revokerPublicKey.mul(account.viewer.privateKey).x]),
+  );
 
-  return { owner, assetId, value, commitment, nullifier, blinding: r, pubKey, leafIndex };
+  return {
+    address: account.address,
+    owner,
+    assetId,
+    value,
+    commitment,
+    nullifier,
+    blinding: r,
+    leafIndex,
+  };
 };
