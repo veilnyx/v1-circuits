@@ -30,15 +30,17 @@ export const randomKeyPair = () => {
 export const randomAccount = () => {
   const signer = randomKeyPair();
   const viewer = randomKeyPair();
+  const address = poseidonHash([signer.publicKey.x, signer.publicKey.y, viewer.privateKey]);
 
   return {
     signer,
     viewer,
+    address,
     sign(message: BytesLike) {
       return schnorr.sign(message, signer.privateKey);
     },
-    getStealthAddress(blinding: bigint | string) {
-      return poseidonHash([this.signer.publicKey.x, this.signer.publicKey.y, blinding]);
+    getStealthAddress(revokerPublicKey: Point, blinding: bigint | string) {
+      return poseidonHash([this.address, revokerPublicKey.x, revokerPublicKey.y, blinding]);
     },
   };
 };
