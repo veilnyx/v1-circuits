@@ -1,6 +1,6 @@
 pragma circom 2.1.5;
 
-include "./stealthAddress.circom";
+include "./address.circom";
 include "./limitRange.circom";
 include "./commitment.circom";
 include "./nullifier.circom";
@@ -11,13 +11,18 @@ include "./zeroSumNonFungible.circom";
 include "./beneficiaryCheck.circom";
 include "./complianceProof.circom";
 
-template Transact(nLevels, nIns, nOuts) {
+template Transact(depthCm, depthReg, nIns, nOuts) {
     // Recent merkle root
-    signal input merkleRoot;
+    signal input cmTreeRoot;
 
     // Shielded transaction hash & sign
     signal input hash;
     signal input signature[2];
+
+    // Registration data
+    signal input regTreeRoot;
+    signal input regPathIndices;
+    signal input regPathElements[depthReg];
 
     // Publicaly auditable data
     signal input pubFlow;
@@ -25,17 +30,20 @@ template Transact(nLevels, nIns, nOuts) {
     signal input pubValues[nOuts];
 
     // Input notes data 
-    signal input inPublicKey[2];
+    signal input inViewPrivateKey;
+    signal input inSignPublicKey[2];
+    signal input inRevokerPublicKeys[nIns][2];
     signal input inAssetIds[nIns];
     signal input inValues[nIns];
     signal input inBlindings[nIns];
     signal input inNullifiers[nIns];
     signal input inPathIndices[nIns];
-    signal input inPathElements[nIns][nLevels];
+    signal input inPathElements[nIns][depthCm];
 
     // Output notes data
+    signal input outRevokerPublicKey[2];
     signal input outAssetIds[nOuts];
-    signal input outPublicKeys[nOuts][2];
+    signal input outAddresses[nOuts];
     signal input outValues[nOuts];
     signal input outBlindings[nOuts];
     signal input outCommitments[nOuts];
@@ -48,20 +56,34 @@ template Transact(nLevels, nIns, nOuts) {
     signal input encPubKey[2];
     signal input ephKey;
     signal input ephPubKey[2];
-    signal input encInPublicKeyX;
+    signal input encInAddress;
     signal input encBeneficiaryBlinding;
     signal input encOutAssets[nOuts];
     signal input encOutBlindings[nOuts];
-    signal input encOutPublicKeyXs[nOuts];
+    signal input encOutAddresses[nOuts];
 
     var MAX_BITS_VALUE = 224;
 
+    // Calculate address
+    component inAddress = Address();
+    inAddress.signPublicKey <== inSignPublicKey;
+    inAddress.viewPrivateKey <== inViewPrivateKey;
+
+    // Check address registered
+    component registrationProof = MerkleProof(depthReg);
+    registrationProof.enabled <== 1;
+    registrationProof.root <== regTreeRoot;
+    registrationProof.leaf <== inAddress.out;
+    registrationProof.pathIndices <== regPathIndices;
+    registrationProof.pathElements <== regPathElements;
+
     // Calculate stealth addresses
-    component inOwner[nIns];
+    component inStealthAddress[nIns];
     for (var i = 0; i < nIns; i++) {
-        inOwner[i] = StealthAddress();
-        inOwner[i].publicKey <== inPublicKey;
-        inOwner[i].blinding <== inBlindings[i];
+        inStealthAddress[i] = StealthAddress();
+        inStealthAddress[i].address <== inAddress.out;
+        inStealthAddress[i].revokerPublicKey <== inRevokerPublicKeys[i];
+        inStealthAddress[i].blinding <== inBlindings[i];
     }
 
     // Calculate commitments
@@ -69,7 +91,7 @@ template Transact(nLevels, nIns, nOuts) {
     for (var i = 0; i < nIns; i++) {
         inCommitmentHasher[i] = Commitment();
         inCommitmentHasher[i].assetId <== inAssetIds[i];
-        inCommitmentHasher[i].owner <== inOwner[i].out;
+        inCommitmentHasher[i].owner <== inStealthAddress[i].out;
         inCommitmentHasher[i].value <== inValues[i];
     }
 
@@ -79,25 +101,25 @@ template Transact(nLevels, nIns, nOuts) {
     for (var i = 0; i < nIns; i++) {
         inNullifiersHasher[i] = Nullifier();
         inNullifiersHasher[i].pathIndices <== inPathIndices[i];
-        inNullifiersHasher[i].commitment <== inCommitmentHasher[i].out;
-        inNullifiersHasher[i].blinding <== inBlindings[i];
+        inNullifiersHasher[i].viewPrivateKey <== inViewPrivateKey;
+        inNullifiersHasher[i].revokerPublicKey <== inRevokerPublicKeys[i];
         inNullifiersHasher[i].out === inNullifiers[i];
     }
 
     // Check ownership proof
     component inOwnershipProof = OwnershipProof();
-    inOwnershipProof.publicKey <== inPublicKey;
     inOwnershipProof.hash <== hash;
+    inOwnershipProof.publicKey <== inSignPublicKey;
     inOwnershipProof.signature <== signature;
 
     // Check merkle inclusions of commitments, except for dummy notes
     // where assetId == 0 AND value == 0
     component inMerkleProof[nIns];
     for (var i = 0; i < nIns; i++) {
-        inMerkleProof[i] = MerkleProof(nLevels);
+        inMerkleProof[i] = MerkleProof(depthCm);
         //@todo check if this is sufficient
         inMerkleProof[i].enabled <== inAssetIds[i] + inValues[i];
-        inMerkleProof[i].root <== merkleRoot;
+        inMerkleProof[i].root <== cmTreeRoot;
         inMerkleProof[i].leaf <== inCommitmentHasher[i].out;
         inMerkleProof[i].pathIndices <== inPathIndices[i];
         inMerkleProof[i].pathElements <== inPathElements[i];
@@ -110,11 +132,12 @@ template Transact(nLevels, nIns, nOuts) {
         limitRange[i].in <== outValues[i];
     }
 
-    component outOwners[nOuts];
+    component outStealthAddresses[nOuts];
     for (var i = 0; i < nOuts; i++) {
-        outOwners[i] = StealthAddress();
-        outOwners[i].publicKey <== outPublicKeys[i];
-        outOwners[i].blinding <== outBlindings[i];
+        outStealthAddresses[i] = StealthAddress();
+        outStealthAddresses[i].address <== outAddresses[i];
+        outStealthAddresses[i].revokerPublicKey <== outRevokerPublicKey;
+        outStealthAddresses[i].blinding <== outBlindings[i];
     }
 
     // Calculate output commitments and assert that they are equal to publicly
@@ -123,7 +146,7 @@ template Transact(nLevels, nIns, nOuts) {
     for (var i = 0; i < nOuts; i++) {
         outCommitmentsHasher[i] = Commitment();
         outCommitmentsHasher[i].assetId <== outAssetIds[i];
-        outCommitmentsHasher[i].owner <== outOwners[i].out;
+        outCommitmentsHasher[i].owner <== outStealthAddresses[i].out;
         outCommitmentsHasher[i].value <== outValues[i];
         outCommitmentsHasher[i].out === outCommitments[i];
     }
@@ -188,9 +211,10 @@ template Transact(nLevels, nIns, nOuts) {
 
     // Beneficiary stealth address check
     component beneficiaryCheck = BeneficiaryCheck();
-    beneficiaryCheck.publicKey <== inPublicKey;
-    beneficiaryCheck.beneficiary <== beneficiary;
+    beneficiaryCheck.address <== inAddress.out;
+    beneficiaryCheck.revokerPublicKey <== outRevokerPublicKey;
     beneficiaryCheck.blinding <== beneficiaryBlinding;
+    beneficiaryCheck.beneficiary <== beneficiary;
 
     // Compliance encryption checks
     component complianceProof = ComplianceProof(nOuts);
@@ -198,19 +222,19 @@ template Transact(nLevels, nIns, nOuts) {
     complianceProof.ephPubKey <== ephPubKey;
     complianceProof.encPubKey <== encPubKey;
 
-    complianceProof.inPublicKeyX <== inPublicKey[0];
+    complianceProof.inAddress <== inAddress.out;
     complianceProof.beneficiary <== beneficiary;
     complianceProof.beneficiaryBlinding <== beneficiaryBlinding;
     complianceProof.outAssetIds <== outAssetIds;
     for (var i = 0; i < nOuts; i++) {
-        complianceProof.outPublicKeyXs[i] <== outPublicKeys[i][0];
+        complianceProof.outAddresses[i] <== outAddresses[i];
     }
     complianceProof.outValues <== outValues;
     complianceProof.outBlindings <== outBlindings;
     
-    complianceProof.encInPublicKeyX <== encInPublicKeyX;
+    complianceProof.encInAddress <== encInAddress;
     complianceProof.encBeneficiaryBlinding <== encBeneficiaryBlinding;
     complianceProof.encOutAssets <== encOutAssets;
-    complianceProof.encOutPublicKeyXs <== encOutPublicKeyXs;
+    complianceProof.encOutAddresses <== encOutAddresses;
     complianceProof.encOutBlindings <== encOutBlindings;
 }
