@@ -13,16 +13,16 @@ include "./complianceProof.circom";
 
 template Transact(depthCm, depthReg, nIns, nOuts) {
     // Recent merkle root
-    signal input cmTreeRoot;
+    signal input commitmentTreeRoot;
 
     // Shielded transaction hash & sign
     signal input hash;
     signal input signature[2];
 
     // Registration data
-    signal input regTreeRoot;
-    signal input regPathIndices;
-    signal input regPathElements[depthReg];
+    signal input addressTreeRoot;
+    signal input addressPathIndices;
+    signal input addressPathElements[depthReg];
 
     // Publicaly auditable data
     signal input pubFlow;
@@ -31,7 +31,7 @@ template Transact(depthCm, depthReg, nIns, nOuts) {
 
     // Input notes data 
     signal input inViewPrivateKey;
-    signal input inSignPublicKey[2];
+    signal input inSignPublicKey[2]; // WHAT IF THIS IS REVOKER KEYS ITSELF?
     signal input inRevokerPublicKeys[nIns][2];
     signal input inAssetIds[nIns];
     signal input inValues[nIns];
@@ -72,10 +72,10 @@ template Transact(depthCm, depthReg, nIns, nOuts) {
     // Check address registered
     component registrationProof = MerkleProof(depthReg);
     registrationProof.enabled <== 1;
-    registrationProof.root <== regTreeRoot;
+    registrationProof.root <== addressTreeRoot;
     registrationProof.leaf <== inAddress.out;
-    registrationProof.pathIndices <== regPathIndices;
-    registrationProof.pathElements <== regPathElements;
+    registrationProof.pathIndices <== addressPathIndices;
+    registrationProof.pathElements <== addressPathElements;
 
     // Calculate stealth addresses
     component inStealthAddress[nIns];
@@ -119,7 +119,7 @@ template Transact(depthCm, depthReg, nIns, nOuts) {
         inMerkleProof[i] = MerkleProof(depthCm);
         //@todo check if this is sufficient
         inMerkleProof[i].enabled <== inAssetIds[i] + inValues[i];
-        inMerkleProof[i].root <== cmTreeRoot;
+        inMerkleProof[i].root <== commitmentTreeRoot;
         inMerkleProof[i].leaf <== inCommitmentHasher[i].out;
         inMerkleProof[i].pathIndices <== inPathIndices[i];
         inMerkleProof[i].pathElements <== inPathElements[i];
