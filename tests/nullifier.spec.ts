@@ -9,16 +9,22 @@ describe('nullifier', function () {
     const circuit = await getCircuit('nullifier');
 
     const pathIndices = randomBigInt(8);
-    const viewPrivateKey = randomHex(31);
+    const viewPrivateKey = randomBigInt(31);
+    const commitment = randomBigInt(31);
     const revokerPublicKey = Point.generate(randomBigInt(31));
 
     const inputs = {
       pathIndices,
       viewPrivateKey,
+      commitment,
       revokerPublicKey: revokerPublicKey.toArray(),
     };
 
-    const nullifier = poseidonHash([pathIndices, revokerPublicKey.mul(viewPrivateKey).x]);
+    const nullifier = poseidonHash([
+      pathIndices,
+      commitment,
+      revokerPublicKey.mul(viewPrivateKey).x,
+    ]);
 
     const witness = await circuit.calculateWitness(inputs);
 

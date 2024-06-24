@@ -6,6 +6,7 @@ include "../../node_modules/circomlib/circuits/escalarmulany.circom";
 template Nullifier() {
     signal input pathIndices; // i
     signal input viewPrivateKey; // v
+    signal input commitment;
     signal input revokerPublicKey[2]; // P
 
     signal output out;
@@ -27,9 +28,10 @@ template Nullifier() {
     vkMulP.p <== revokerPublicKey;
 
     // nf = H(i, v.P)
-    component hasher = Poseidon(2);
+    component hasher = Poseidon(3);
     hasher.inputs[0] <== pathIndices;
-    hasher.inputs[1] <== vkMulP.out[0];
+    hasher.inputs[1] <== commitment;
+    hasher.inputs[2] <== vkMulP.out[0];
 
     out <== hasher.out;
 }

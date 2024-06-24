@@ -32,7 +32,7 @@ export const createNote = ({
   const owner = BigInt(poseidonHash([account.address, revokerPublicKey.x, revokerPublicKey.y, r]));
   const commitment = BigInt(poseidonHash([assetId, owner, value]));
   const nullifier = BigInt(
-    poseidonHash([leafIndex, revokerPublicKey.mul(account.viewer.privateKey).x]),
+    poseidonHash([leafIndex, commitment, revokerPublicKey.mul(account.viewer.privateKey).x]),
   );
 
   return {

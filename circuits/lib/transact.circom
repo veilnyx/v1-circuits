@@ -11,8 +11,9 @@ include "./zeroSumNonFungible.circom";
 include "./beneficiaryCheck.circom";
 include "./complianceProof.circom";
 
-template Transact(depthCm, depthReg, nIns, nOuts) {
-    // Recent merkle root
+template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
+    // Recent merkle roots
+    signal input addressTreeRoot;
     signal input commitmentTreeRoot;
 
     // Shielded transaction hash & sign
@@ -20,9 +21,8 @@ template Transact(depthCm, depthReg, nIns, nOuts) {
     signal input signature[2];
 
     // Registration data
-    signal input addressTreeRoot;
-    signal input addressPathIndices;
-    signal input addressPathElements[depthReg];
+    signal input addressPathIndex;
+    signal input addressPathElements[addrTreeDepth];
 
     // Publicaly auditable data
     signal input pubFlow;
@@ -38,7 +38,7 @@ template Transact(depthCm, depthReg, nIns, nOuts) {
     signal input inBlindings[nIns];
     signal input inNullifiers[nIns];
     signal input inPathIndices[nIns];
-    signal input inPathElements[nIns][depthCm];
+    signal input inPathElements[nIns][cmTreeDepth];
 
     // Output notes data
     signal input outRevokerPublicKey[2];
@@ -70,11 +70,11 @@ template Transact(depthCm, depthReg, nIns, nOuts) {
     inAddress.viewPrivateKey <== inViewPrivateKey;
 
     // Check address registered
-    component registrationProof = MerkleProof(depthReg);
+    component registrationProof = MerkleProof(addrTreeDepth);
     registrationProof.enabled <== 1;
     registrationProof.root <== addressTreeRoot;
     registrationProof.leaf <== inAddress.out;
-    registrationProof.pathIndices <== addressPathIndices;
+    registrationProof.pathIndices <== addressPathIndex;
     registrationProof.pathElements <== addressPathElements;
 
     // Calculate stealth addresses
@@ -101,6 +101,7 @@ template Transact(depthCm, depthReg, nIns, nOuts) {
     for (var i = 0; i < nIns; i++) {
         inNullifiersHasher[i] = Nullifier();
         inNullifiersHasher[i].pathIndices <== inPathIndices[i];
+        inNullifiersHasher[i].commitment <== inCommitmentHasher[i].out;
         inNullifiersHasher[i].viewPrivateKey <== inViewPrivateKey;
         inNullifiersHasher[i].revokerPublicKey <== inRevokerPublicKeys[i];
         inNullifiersHasher[i].out === inNullifiers[i];
@@ -116,7 +117,7 @@ template Transact(depthCm, depthReg, nIns, nOuts) {
     // where assetId == 0 AND value == 0
     component inMerkleProof[nIns];
     for (var i = 0; i < nIns; i++) {
-        inMerkleProof[i] = MerkleProof(depthCm);
+        inMerkleProof[i] = MerkleProof(cmTreeDepth);
         //@todo check if this is sufficient
         inMerkleProof[i].enabled <== inAssetIds[i] + inValues[i];
         inMerkleProof[i].root <== commitmentTreeRoot;
