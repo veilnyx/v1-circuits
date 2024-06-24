@@ -2,4 +2,4 @@ pragma circom 2.1.5;
 
 include "../../circuits/lib/transact.circom";
 
-component main = Transact(32, 20, 2, 2);
+component main = Transact(20, 32, 2, 2);
