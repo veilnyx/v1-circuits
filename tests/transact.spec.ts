@@ -8,11 +8,11 @@ import { encodeAsset } from './helpers/asset';
 
 const eth = (n: number) => parseEther(`${n}`);
 const cmTreeDepth = 32;
-const regTreeDepth = 20;
+const addrTreeDepth = 20;
 const getCmTree = () =>
   new MerkleTree(cmTreeDepth, [], { hashFunction: (a, b) => poseidonHash([a, b]) });
-const getRegTree = () =>
-  new MerkleTree(regTreeDepth, [], { hashFunction: (a, b) => poseidonHash([a, b]) });
+const getAddrTree = () =>
+  new MerkleTree(addrTreeDepth, [], { hashFunction: (a, b) => poseidonHash([a, b]) });
 
 describe('transact', function () {
   this.timeout(8000);
@@ -48,10 +48,10 @@ describe('transact', function () {
     outNotes: NoteData[];
     pubValues: bigint[];
   }) => {
-    const cmTree = getCmTree();
-    const regTree = getRegTree();
-    cmTree.bulkInsert(inNotes.map((n: any) => n.commitment));
-    regTree.insert(sender.address);
+    const commitmentsTree = getCmTree();
+    const addressTree = getAddrTree();
+    commitmentsTree.bulkInsert(inNotes.map((n: any) => n.commitment));
+    addressTree.insert(sender.address);
     const hash = randomHex(31);
     const sign = sender.sign(hash);
 
@@ -84,13 +84,15 @@ describe('transact', function () {
     });
 
     const inputs = {
-      cmTreeRoot: cmTree.root.toString(),
+      commitmentTreeRoot: commitmentsTree.root.toString(),
       hash,
       signature: [sign.s, sign.e],
-      // reg
-      regTreeRoot: regTree.root.toString(),
-      regPathIndices: regTree.indexOf(sender.address),
-      regPathElements: regTree.path(regTree.indexOf(sender.address)).pathElements,
+      // address reg
+      addressTreeRoot: addressTree.root.toString(),
+      addressPathIndex: addressTree.indexOf(sender.address),
+      addressPathElements: addressTree
+        .path(addressTree.indexOf(sender.address))
+        .pathElements.map((x) => BigInt(x)),
       // public
       pubFlow,
       pubAssetIds: [ft1, ft1],
@@ -104,7 +106,7 @@ describe('transact', function () {
       inBlindings: inNotes.map((note: any) => note.blinding),
       inNullifiers: inNotes.map((note: any) => note.nullifier),
       inPathIndices: inNotes.map((n) => n.leafIndex),
-      inPathElements: inNotes.map((n) => cmTree.path(n.leafIndex).pathElements),
+      inPathElements: inNotes.map((n) => commitmentsTree.path(n.leafIndex).pathElements),
       // outs
       outRevokerPublicKey: revokerPublicKey.toArray(),
       outAssetIds: outNotes.map((note: any) => note.assetId),

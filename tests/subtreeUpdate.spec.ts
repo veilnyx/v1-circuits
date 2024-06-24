@@ -39,7 +39,7 @@ describe('subtreeUpdate', function () {
     updateTreeCircuit = await getCircuit('subtreeUpdate');
   });
 
-  it.only('should correctly insert leaf', async function () {
+  it('should correctly insert leaf', async function () {
     const tree = getTree();
     const leaves = Array.from({ length: 10 }).map(() => randomLeaf());
     tree.bulkInsert(leaves);
@@ -69,7 +69,7 @@ describe('subtreeUpdate', function () {
     }
   });
 
-  it.only('should correctly insert batch of leaves', async function () {
+  it('should correctly insert batch of leaves', async function () {
     const tree = getTree();
     const initLeaves = Array.from({ length: 10 }).map(() => randomLeaf());
     tree.bulkInsert(initLeaves);
