@@ -1,6 +1,7 @@
 pragma circom 2.1.5;
 
 include "../../node_modules/circomlib/circuits/poseidon.circom";
+include "../../node_modules/circomlib/circuits/comparators.circom";
 
 template Address() {
     signal input signPublicKey[2];
@@ -28,4 +29,21 @@ template StealthAddress() {
     hasher.inputs[3] <== blinding;
 
     out <== hasher.out;
+}
+
+template StealthAddressCheck() {
+    signal input address;
+    signal input revokerPublicKey[2];
+    signal input blinding;
+    signal input stealthAddress;
+
+    component xAddress = StealthAddress();
+    xAddress.address <== address;
+    xAddress.revokerPublicKey <== revokerPublicKey;
+    xAddress.blinding <== blinding;
+
+    component checkEq = ForceEqualIfEnabled();
+    checkEq.enabled <== stealthAddress;
+    checkEq.in[0] <== xAddress.out;
+    checkEq.in[1] <== stealthAddress;
 }

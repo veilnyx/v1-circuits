@@ -23,7 +23,7 @@ describe('transact', function () {
   let senderPubKey;
   let receiverPubKey;
   let revokerPublicKey;
-  let encPublicKey;
+  let encryptionPublicKey;
 
   let ft1 = 0x010001;
 
@@ -34,7 +34,7 @@ describe('transact', function () {
     senderPubKey = sender.signer.publicKey.toArray();
     receiverPubKey = receiver.signer.publicKey.toArray();
     revokerPublicKey = Point.generate(randomBigInt(31));
-    encPublicKey = Point.generate(randomBigInt(31));
+    encryptionPublicKey = Point.generate(randomBigInt(31));
   });
 
   const createTx = ({
@@ -55,31 +55,37 @@ describe('transact', function () {
     const hash = randomHex(31);
     const sign = sender.sign(hash);
 
-    const beneficiaryBlinding = randomBigInt(31);
-    const beneficiary = sender.getStealthAddress(revokerPublicKey, beneficiaryBlinding);
+    const refundAddressBlinding = randomBigInt(31);
+    const refundAddress = sender.getStealthAddress(revokerPublicKey, refundAddressBlinding);
 
-    const ephKey = randomBigInt(31);
-    const ephPubKey = Point.generate(ephKey);
+    const ephemeralKey = randomBigInt(31);
+    const ephemeralPublicKey = Point.generate(ephemeralKey);
 
-    const encInAddress = BigInt(
-      slice(elGamal.encrypt(sender.address, encPublicKey, ephKey), 32, 64),
+    const encryptedInAddress = BigInt(
+      slice(elGamal.encrypt(sender.address, encryptionPublicKey, ephemeralKey), 32, 64),
     );
-    const encBeneficiaryBlinding =
-      BigInt(beneficiary) === 0n
+    const encryptedRefundAddressBlinding =
+      BigInt(refundAddress) === 0n
         ? 0
-        : BigInt(slice(elGamal.encrypt(beneficiaryBlinding, encPublicKey, ephKey), 32, 64));
+        : BigInt(
+            slice(
+              elGamal.encrypt(refundAddressBlinding, encryptionPublicKey, ephemeralKey),
+              32,
+              64,
+            ),
+          );
 
     const assets = outNotes.map((note: any) => encodeAsset(note.assetId, note.value));
-    const encOutAssets = assets.map((a) => {
-      const ciphertext = elGamal.encrypt(a, encPublicKey, ephKey);
+    const encryptedOutAssets = assets.map((a) => {
+      const ciphertext = elGamal.encrypt(a, encryptionPublicKey, ephemeralKey);
       return BigInt(slice(ciphertext, 32, 64));
     });
-    const encOutBlindings = outNotes.map((n) => {
-      const ciphertext = elGamal.encrypt(n.blinding, encPublicKey, ephKey);
+    const encryptedOutBlindings = outNotes.map((n) => {
+      const ciphertext = elGamal.encrypt(n.blinding, encryptionPublicKey, ephemeralKey);
       return BigInt(slice(ciphertext, 32, 64));
     });
-    const encOutAddresses = outNotes.map((n) => {
-      const ciphertext = elGamal.encrypt(n.address, encPublicKey, ephKey);
+    const encryptedOutAddresses = outNotes.map((n) => {
+      const ciphertext = elGamal.encrypt(n.address, encryptionPublicKey, ephemeralKey);
       return BigInt(slice(ciphertext, 32, 64));
     });
 
@@ -114,18 +120,18 @@ describe('transact', function () {
       outValues: outNotes.map((note: any) => note.value),
       outBlindings: outNotes.map((note: any) => note.blinding),
       outCommitments: outNotes.map((note: any) => note.commitment),
-      // beneficiary
-      beneficiary,
-      beneficiaryBlinding,
+      // refund address
+      refundAddress,
+      refundAddressBlinding,
       // encryptions
-      ephKey,
-      ephPubKey: ephPubKey.toArray(),
-      encPubKey: encPublicKey.toArray(),
-      encInAddress,
-      encBeneficiaryBlinding,
-      encOutAssets,
-      encOutBlindings,
-      encOutAddresses,
+      ephemeralKey,
+      ephemeralPublicKey: ephemeralPublicKey.toArray(),
+      encryptionPublicKey: encryptionPublicKey.toArray(),
+      encryptedInAddress,
+      encryptedRefundAddressBlinding,
+      encryptedOutAssets,
+      encryptedOutBlindings,
+      encryptedOutAddresses,
     };
     return inputs;
   };

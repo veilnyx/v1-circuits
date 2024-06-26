@@ -8,7 +8,6 @@ include "./merkleProof.circom";
 include "./ownershipProof.circom";
 include "./zeroSumFungible.circom";
 include "./zeroSumNonFungible.circom";
-include "./beneficiaryCheck.circom";
 include "./complianceProof.circom";
 
 template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
@@ -49,18 +48,18 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     signal input outCommitments[nOuts];
 
     // Stealth addresses for any deposits to shielded account
-    signal input beneficiary;
-    signal input beneficiaryBlinding;
+    signal input refundAddress;
+    signal input refundAddressBlinding;
 
     // Encrypted data
-    signal input encPubKey[2];
-    signal input ephKey;
-    signal input ephPubKey[2];
-    signal input encInAddress;
-    signal input encBeneficiaryBlinding;
-    signal input encOutAssets[nOuts];
-    signal input encOutBlindings[nOuts];
-    signal input encOutAddresses[nOuts];
+    signal input encryptionPublicKey[2];
+    signal input ephemeralKey;
+    signal input ephemeralPublicKey[2];
+    signal input encryptedInAddress;
+    signal input encryptedRefundAddressBlinding;
+    signal input encryptedOutAssets[nOuts];
+    signal input encryptedOutBlindings[nOuts];
+    signal input encryptedOutAddresses[nOuts];
 
     var MAX_BITS_VALUE = 224;
 
@@ -210,22 +209,22 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
         outZeroSumNonFungible[i].pubAssetIds <== pubAssetIds;
     }
 
-    // Beneficiary stealth address check
-    component beneficiaryCheck = BeneficiaryCheck();
-    beneficiaryCheck.address <== inAddress.out;
-    beneficiaryCheck.revokerPublicKey <== outRevokerPublicKey;
-    beneficiaryCheck.blinding <== beneficiaryBlinding;
-    beneficiaryCheck.beneficiary <== beneficiary;
+    // Refund stealth address check
+    component refundAddressCheck = StealthAddressCheck();
+    refundAddressCheck.address <== inAddress.out;
+    refundAddressCheck.revokerPublicKey <== outRevokerPublicKey;
+    refundAddressCheck.blinding <== refundAddressBlinding;
+    refundAddressCheck.stealthAddress <== refundAddress;
 
     // Compliance encryption checks
     component complianceProof = ComplianceProof(nOuts);
-    complianceProof.ephKey <== ephKey;
-    complianceProof.ephPubKey <== ephPubKey;
-    complianceProof.encPubKey <== encPubKey;
+    complianceProof.ephemeralKey <== ephemeralKey;
+    complianceProof.ephemeralPublicKey <== ephemeralPublicKey;
+    complianceProof.encryptionPublicKey <== encryptionPublicKey;
 
     complianceProof.inAddress <== inAddress.out;
-    complianceProof.beneficiary <== beneficiary;
-    complianceProof.beneficiaryBlinding <== beneficiaryBlinding;
+    complianceProof.refundAddress <== refundAddress;
+    complianceProof.refundAddressBlinding <== refundAddressBlinding;
     complianceProof.outAssetIds <== outAssetIds;
     for (var i = 0; i < nOuts; i++) {
         complianceProof.outAddresses[i] <== outAddresses[i];
@@ -233,9 +232,9 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     complianceProof.outValues <== outValues;
     complianceProof.outBlindings <== outBlindings;
     
-    complianceProof.encInAddress <== encInAddress;
-    complianceProof.encBeneficiaryBlinding <== encBeneficiaryBlinding;
-    complianceProof.encOutAssets <== encOutAssets;
-    complianceProof.encOutAddresses <== encOutAddresses;
-    complianceProof.encOutBlindings <== encOutBlindings;
+    complianceProof.encryptedInAddress <== encryptedInAddress;
+    complianceProof.encryptedRefundAddressBlinding <== encryptedRefundAddressBlinding;
+    complianceProof.encryptedOutAssets <== encryptedOutAssets;
+    complianceProof.encryptedOutAddresses <== encryptedOutAddresses;
+    complianceProof.encryptedOutBlindings <== encryptedOutBlindings;
 }

@@ -11,13 +11,13 @@ include "../../node_modules/circomlib/circuits/poseidon.circom";
 // See: https://www.di.ens.fr/david.pointcheval/Documents/Papers/2006_pkcC.pdf
 template ElGamalEncrypt() {
     // Ephemeral key, (r)
-    signal input ephKey;
+    signal input ephemeralKey;
 
     // Ephemeral public key (R)
-    signal input ephPubKey[2];
+    signal input ephemeralPublicKey[2];
 
     // Encryption key (P)
-    signal input encPubKey[2];
+    signal input encryptionPublicKey[2];
 
     // Message
     signal input m;
@@ -34,32 +34,32 @@ template ElGamalEncrypt() {
     // Subgroup order (https://eips.ethereum.org/EIPS/eip-2494)
     var SUBGROUP_ORDER = 2736030358979909402780800718157159386076813972158567259200215660948447373041;
 
-    component ephKeyBits = Num2Bits(254);
-    ephKeyBits.in <== ephKey;
+    component ephemeralKeyBits = Num2Bits(254);
+    ephemeralKeyBits.in <== ephemeralKey;
 
     // Assert r < SUBGROUP_ORDER
     component comp = CompConstant(SUBGROUP_ORDER);
-    comp.in <== ephKeyBits.out;
+    comp.in <== ephemeralKeyBits.out;
     comp.out === 0;
 
     // Caclulate R = r.G
-    component ephKeyMulG = EscalarMulAny(254);
-    ephKeyMulG.e <== ephKeyBits.out;
-    ephKeyMulG.p <== BASE8;
-    ephPubKey === ephKeyMulG.out;
+    component ephemeralKeyMulG = EscalarMulAny(254);
+    ephemeralKeyMulG.e <== ephemeralKeyBits.out;
+    ephemeralKeyMulG.p <== BASE8;
+    ephemeralPublicKey === ephemeralKeyMulG.out;
 
     // Calculate r.P
-    component ephKeyMulP = EscalarMulAny(254);
-    ephKeyMulP.e <== ephKeyBits.out;
-    ephKeyMulP.p <== encPubKey;
+    component ephemeralKeyMulP = EscalarMulAny(254);
+    ephemeralKeyMulP.e <== ephemeralKeyBits.out;
+    ephemeralKeyMulP.p <== encryptionPublicKey;
 
     // Calculate h = H(r.P)
-    component ephKeyMulPHash = Poseidon(2);
-    ephKeyMulPHash.inputs[0] <== ephKeyMulP.out[0];
-    ephKeyMulPHash.inputs[1] <== ephKeyMulP.out[1];
+    component ephemeralKeyMulPHash = Poseidon(2);
+    ephemeralKeyMulPHash.inputs[0] <== ephemeralKeyMulP.out[0];
+    ephemeralKeyMulPHash.inputs[1] <== ephemeralKeyMulP.out[1];
 
     // Assert c = m + h
-    c === m + ephKeyMulPHash.out;
+    c === m + ephemeralKeyMulPHash.out;
 }
 
 // Re-uses randomness to encrypt multiple messages
@@ -69,13 +69,13 @@ template ElGamalEncrypt() {
 //      - change def of dummy notes: dummy note has assetId=0 & any value
 template ElGamalEncryptMulti(n) {
     // Ephemeral key, (r)
-    signal input ephKey;
+    signal input ephemeralKey;
 
     // Ephemeral public key (R)
-    signal input ephPubKey[2];
+    signal input ephemeralPublicKey[2];
 
     // Encryption key (P)
-    signal input encPubKey[2];
+    signal input encryptionPublicKey[2];
 
     // Enable switches
     signal input enabled[n];
@@ -95,29 +95,29 @@ template ElGamalEncryptMulti(n) {
     // Subgroup order (https://eips.ethereum.org/EIPS/eip-2494)
     var SUBGROUP_ORDER = 2736030358979909402780800718157159386076813972158567259200215660948447373041;
 
-    component ephKeyBits = Num2Bits(254);
-    ephKeyBits.in <== ephKey;
+    component ephemeralKeyBits = Num2Bits(254);
+    ephemeralKeyBits.in <== ephemeralKey;
 
     // Assert r < SUBGROUP_ORDER
     component comp = CompConstant(SUBGROUP_ORDER);
-    comp.in <== ephKeyBits.out;
+    comp.in <== ephemeralKeyBits.out;
     comp.out === 0;
 
     // Caclulate R = r.G
-    component ephKeyMulG = EscalarMulAny(254);
-    ephKeyMulG.e <== ephKeyBits.out;
-    ephKeyMulG.p <== BASE8;
-    ephPubKey === ephKeyMulG.out;
+    component ephemeralKeyMulG = EscalarMulAny(254);
+    ephemeralKeyMulG.e <== ephemeralKeyBits.out;
+    ephemeralKeyMulG.p <== BASE8;
+    ephemeralPublicKey === ephemeralKeyMulG.out;
 
     // Calculate r.P
-    component ephKeyMulP = EscalarMulAny(254);
-    ephKeyMulP.e <== ephKeyBits.out;
-    ephKeyMulP.p <== encPubKey;
+    component ephemeralKeyMulP = EscalarMulAny(254);
+    ephemeralKeyMulP.e <== ephemeralKeyBits.out;
+    ephemeralKeyMulP.p <== encryptionPublicKey;
 
     // Calculate h = H(r.P)
-    component ephKeyMulPHash = Poseidon(2);
-    ephKeyMulPHash.inputs[0] <== ephKeyMulP.out[0];
-    ephKeyMulPHash.inputs[1] <== ephKeyMulP.out[1];
+    component ephemeralKeyMulPHash = Poseidon(2);
+    ephemeralKeyMulPHash.inputs[0] <== ephemeralKeyMulP.out[0];
+    ephemeralKeyMulPHash.inputs[1] <== ephemeralKeyMulP.out[1];
 
     // Assert c = m + h
     component checkEq[n];
@@ -125,7 +125,7 @@ template ElGamalEncryptMulti(n) {
         checkEq[i] = ForceEqualIfEnabled();
         checkEq[i].enabled <== enabled[i];
         checkEq[i].in[0] <== c[i];
-        checkEq[i].in[1] <== m[i] + ephKeyMulPHash.out;
+        checkEq[i].in[1] <== m[i] + ephemeralKeyMulPHash.out;
     }
 }
 
