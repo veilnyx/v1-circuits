@@ -3,7 +3,7 @@ pragma circom 2.1.5;
 include "../../node_modules/circomlib/circuits/poseidon.circom";
 include "../../node_modules/circomlib/circuits/comparators.circom";
 
-template Address() {
+template RootAddress() {
     signal input signPublicKey[2];
     signal input viewPrivateKey;
     signal output out;
@@ -16,14 +16,14 @@ template Address() {
     out <== hasher.out;
 }
 
-template StealthAddress() {
-    signal input address;
+template BlindedAddress() {
+    signal input rootAddress;
     signal input revokerPublicKey[2];
     signal input blinding;
     signal output out;
 
     component hasher = Poseidon(4);
-    hasher.inputs[0] <== address;
+    hasher.inputs[0] <== rootAddress;
     hasher.inputs[1] <== revokerPublicKey[0];
     hasher.inputs[2] <== revokerPublicKey[1];
     hasher.inputs[3] <== blinding;
@@ -31,19 +31,19 @@ template StealthAddress() {
     out <== hasher.out;
 }
 
-template StealthAddressCheck() {
-    signal input address;
+template BlindedAddressCheck() {
+    signal input rootAddress;
     signal input revokerPublicKey[2];
     signal input blinding;
-    signal input stealthAddress;
+    signal input blindedAddress;
 
-    component xAddress = StealthAddress();
-    xAddress.address <== address;
+    component xAddress = BlindedAddress();
+    xAddress.rootAddress <== rootAddress;
     xAddress.revokerPublicKey <== revokerPublicKey;
     xAddress.blinding <== blinding;
 
     component checkEq = ForceEqualIfEnabled();
-    checkEq.enabled <== stealthAddress;
+    checkEq.enabled <== blindedAddress;
     checkEq.in[0] <== xAddress.out;
-    checkEq.in[1] <== stealthAddress;
+    checkEq.in[1] <== blindedAddress;
 }

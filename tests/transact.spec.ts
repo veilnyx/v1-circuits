@@ -56,12 +56,12 @@ describe('transact', function () {
     const sign = sender.sign(hash);
 
     const refundAddressBlinding = randomBigInt(31);
-    const refundAddress = sender.getStealthAddress(revokerPublicKey, refundAddressBlinding);
+    const refundAddress = sender.getBlindedAddress(revokerPublicKey, refundAddressBlinding);
 
     const ephemeralKey = randomBigInt(31);
     const ephemeralPublicKey = Point.generate(ephemeralKey);
 
-    const encryptedInAddress = BigInt(
+    const encryptedInRootAddress = BigInt(
       slice(elGamal.encrypt(sender.address, encryptionPublicKey, ephemeralKey), 32, 64),
     );
     const encryptedRefundAddressBlinding =
@@ -84,7 +84,7 @@ describe('transact', function () {
       const ciphertext = elGamal.encrypt(n.blinding, encryptionPublicKey, ephemeralKey);
       return BigInt(slice(ciphertext, 32, 64));
     });
-    const encryptedOutAddresses = outNotes.map((n) => {
+    const encryptedOutRootAddresses = outNotes.map((n) => {
       const ciphertext = elGamal.encrypt(n.address, encryptionPublicKey, ephemeralKey);
       return BigInt(slice(ciphertext, 32, 64));
     });
@@ -116,7 +116,7 @@ describe('transact', function () {
       // outs
       outRevokerPublicKey: revokerPublicKey.toArray(),
       outAssetIds: outNotes.map((note: any) => note.assetId),
-      outAddresses: outNotes.map((note: any) => note.address),
+      outRootAddresses: outNotes.map((note: any) => note.address),
       outValues: outNotes.map((note: any) => note.value),
       outBlindings: outNotes.map((note: any) => note.blinding),
       outCommitments: outNotes.map((note: any) => note.commitment),
@@ -127,11 +127,11 @@ describe('transact', function () {
       ephemeralKey,
       ephemeralPublicKey: ephemeralPublicKey.toArray(),
       encryptionPublicKey: encryptionPublicKey.toArray(),
-      encryptedInAddress,
+      encryptedInRootAddress,
       encryptedRefundAddressBlinding,
       encryptedOutAssets,
       encryptedOutBlindings,
-      encryptedOutAddresses,
+      encryptedOutRootAddresses,
     };
     return inputs;
   };

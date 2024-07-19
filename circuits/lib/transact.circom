@@ -42,12 +42,12 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     // Output notes data
     signal input outRevokerPublicKey[2];
     signal input outAssetIds[nOuts];
-    signal input outAddresses[nOuts];
+    signal input outRootAddresses[nOuts];
     signal input outValues[nOuts];
     signal input outBlindings[nOuts];
     signal input outCommitments[nOuts];
 
-    // Stealth addresses for any deposits to shielded account
+    // pubValues addresses for any deposits to shielded account
     signal input refundAddress;
     signal input refundAddressBlinding;
 
@@ -55,34 +55,34 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     signal input encryptionPublicKey[2];
     signal input ephemeralKey;
     signal input ephemeralPublicKey[2];
-    signal input encryptedInAddress;
+    signal input encryptedInRootAddress;
     signal input encryptedRefundAddressBlinding;
     signal input encryptedOutAssets[nOuts];
     signal input encryptedOutBlindings[nOuts];
-    signal input encryptedOutAddresses[nOuts];
+    signal input encryptedOutRootAddresses[nOuts];
 
     var MAX_BITS_VALUE = 224;
 
     // Calculate address
-    component inAddress = Address();
-    inAddress.signPublicKey <== inSignPublicKey;
-    inAddress.viewPrivateKey <== inViewPrivateKey;
+    component inRootAddress = RootAddress();
+    inRootAddress.signPublicKey <== inSignPublicKey;
+    inRootAddress.viewPrivateKey <== inViewPrivateKey;
 
     // Check address registered
     component registrationProof = MerkleProof(addrTreeDepth);
     registrationProof.enabled <== 1;
     registrationProof.root <== addressTreeRoot;
-    registrationProof.leaf <== inAddress.out;
+    registrationProof.leaf <== inRootAddress.out;
     registrationProof.pathIndices <== addressPathIndex;
     registrationProof.pathElements <== addressPathElements;
 
-    // Calculate stealth addresses
-    component inStealthAddress[nIns];
+    // Calculate blinded addresses
+    component inBlindedAddress[nIns];
     for (var i = 0; i < nIns; i++) {
-        inStealthAddress[i] = StealthAddress();
-        inStealthAddress[i].address <== inAddress.out;
-        inStealthAddress[i].revokerPublicKey <== inRevokerPublicKeys[i];
-        inStealthAddress[i].blinding <== inBlindings[i];
+        inBlindedAddress[i] = BlindedAddress();
+        inBlindedAddress[i].rootAddress <== inRootAddress.out;
+        inBlindedAddress[i].revokerPublicKey <== inRevokerPublicKeys[i];
+        inBlindedAddress[i].blinding <== inBlindings[i];
     }
 
     // Calculate commitments
@@ -90,7 +90,7 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     for (var i = 0; i < nIns; i++) {
         inCommitmentHasher[i] = Commitment();
         inCommitmentHasher[i].assetId <== inAssetIds[i];
-        inCommitmentHasher[i].owner <== inStealthAddress[i].out;
+        inCommitmentHasher[i].owner <== inBlindedAddress[i].out;
         inCommitmentHasher[i].value <== inValues[i];
     }
 
@@ -132,12 +132,12 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
         limitRange[i].in <== outValues[i];
     }
 
-    component outStealthAddresses[nOuts];
+    component outBlindedAddresses[nOuts];
     for (var i = 0; i < nOuts; i++) {
-        outStealthAddresses[i] = StealthAddress();
-        outStealthAddresses[i].address <== outAddresses[i];
-        outStealthAddresses[i].revokerPublicKey <== outRevokerPublicKey;
-        outStealthAddresses[i].blinding <== outBlindings[i];
+        outBlindedAddresses[i] = BlindedAddress();
+        outBlindedAddresses[i].rootAddress <== outRootAddresses[i];
+        outBlindedAddresses[i].revokerPublicKey <== outRevokerPublicKey;
+        outBlindedAddresses[i].blinding <== outBlindings[i];
     }
 
     // Calculate output commitments and assert that they are equal to publicly
@@ -146,7 +146,7 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     for (var i = 0; i < nOuts; i++) {
         outCommitmentsHasher[i] = Commitment();
         outCommitmentsHasher[i].assetId <== outAssetIds[i];
-        outCommitmentsHasher[i].owner <== outStealthAddresses[i].out;
+        outCommitmentsHasher[i].owner <== outBlindedAddresses[i].out;
         outCommitmentsHasher[i].value <== outValues[i];
         outCommitmentsHasher[i].out === outCommitments[i];
     }
@@ -209,12 +209,12 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
         outZeroSumNonFungible[i].pubAssetIds <== pubAssetIds;
     }
 
-    // Refund stealth address check
-    component refundAddressCheck = StealthAddressCheck();
-    refundAddressCheck.address <== inAddress.out;
+    // Refund blinded address check
+    component refundAddressCheck = BlindedAddressCheck();
+    refundAddressCheck.rootAddress <== inRootAddress.out;
     refundAddressCheck.revokerPublicKey <== outRevokerPublicKey;
     refundAddressCheck.blinding <== refundAddressBlinding;
-    refundAddressCheck.stealthAddress <== refundAddress;
+    refundAddressCheck.blindedAddress <== refundAddress;
 
     // Compliance encryption checks
     component complianceProof = ComplianceProof(nOuts);
@@ -222,19 +222,19 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     complianceProof.ephemeralPublicKey <== ephemeralPublicKey;
     complianceProof.encryptionPublicKey <== encryptionPublicKey;
 
-    complianceProof.inAddress <== inAddress.out;
+    complianceProof.inRootAddress <== inRootAddress.out;
     complianceProof.refundAddress <== refundAddress;
     complianceProof.refundAddressBlinding <== refundAddressBlinding;
     complianceProof.outAssetIds <== outAssetIds;
     for (var i = 0; i < nOuts; i++) {
-        complianceProof.outAddresses[i] <== outAddresses[i];
+        complianceProof.outRootAddresses[i] <== outRootAddresses[i];
     }
     complianceProof.outValues <== outValues;
     complianceProof.outBlindings <== outBlindings;
     
-    complianceProof.encryptedInAddress <== encryptedInAddress;
+    complianceProof.encryptedInRootAddress <== encryptedInRootAddress;
     complianceProof.encryptedRefundAddressBlinding <== encryptedRefundAddressBlinding;
     complianceProof.encryptedOutAssets <== encryptedOutAssets;
-    complianceProof.encryptedOutAddresses <== encryptedOutAddresses;
+    complianceProof.encryptedOutRootAddresses <== encryptedOutRootAddresses;
     complianceProof.encryptedOutBlindings <== encryptedOutBlindings;
 }

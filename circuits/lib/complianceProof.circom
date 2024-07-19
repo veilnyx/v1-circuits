@@ -8,19 +8,19 @@ template ComplianceProof(n) {
     signal input ephemeralPublicKey[2];
     signal input encryptionPublicKey[2];
 
-    signal input inAddress;
+    signal input inRootAddress;
     signal input refundAddress;
     signal input refundAddressBlinding;
     signal input outAssetIds[n];
-    signal input outAddresses[n];
+    signal input outRootAddresses[n];
     signal input outValues[n];
     signal input outBlindings[n];
 
-    signal input encryptedInAddress;
+    signal input encryptedInRootAddress;
     signal input encryptedRefundAddressBlinding;
     signal input encryptedOutAssets[n];
     signal input encryptedOutBlindings[n];
-    signal input encryptedOutAddresses[n];
+    signal input encryptedOutRootAddresses[n];
 
     component assetEncoder[n];
     for (var i = 0; i < n; i++) {
@@ -48,13 +48,13 @@ template ComplianceProof(n) {
 
     for (var i = 0; i < n; i++) {
         encVerifier.enabled[2*n+i] <== 1;
-        encVerifier.m[2*n+i] <== outAddresses[i];
-        encVerifier.c[2*n+i] <== encryptedOutAddresses[i];
+        encVerifier.m[2*n+i] <== outRootAddresses[i];
+        encVerifier.c[2*n+i] <== encryptedOutRootAddresses[i];
     }
 
     encVerifier.enabled[3*n] <== 1;
-    encVerifier.m[3*n] <== inAddress;
-    encVerifier.c[3*n] <== encryptedInAddress;
+    encVerifier.m[3*n] <== inRootAddress;
+    encVerifier.c[3*n] <== encryptedInRootAddress;
 
     encVerifier.enabled[3*n + 1] <== refundAddress;
     encVerifier.m[3*n + 1] <== refundAddressBlinding;

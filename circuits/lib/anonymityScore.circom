@@ -21,24 +21,24 @@ template AnonymityScore(cmTreeDepth, n) {
     signal input anonymityScore;
 
     // Calculate address
-    component address = Address();
-    address.signPublicKey <== signPublicKey;
-    address.viewPrivateKey <== viewPrivateKey;
+    component rootAddr = RootAddress();
+    rootAddr.signPublicKey <== signPublicKey;
+    rootAddr.viewPrivateKey <== viewPrivateKey;
 
-    // Calculate stealth addresses
-    component stealthAddresses[n];
+    // Calculate blinded addresses
+    component blindedAddresses[n];
     for (var i = 0; i < n; i++) {
-        stealthAddresses[i] = StealthAddress();
-        stealthAddresses[i].address <== address.out;
-        stealthAddresses[i].revokerPublicKey <== revokerPublicKeys[i];
-        stealthAddresses[i].blinding <== blindings[i];
+        blindedAddresses[i] = BlindedAddress();
+        blindedAddresses[i].rootAddress <== rootAddr.out;
+        blindedAddresses[i].revokerPublicKey <== revokerPublicKeys[i];
+        blindedAddresses[i].blinding <== blindings[i];
     }
 
     component commitmentHashers[n];
     for (var i = 0; i < n; i++) {
         commitmentHashers[i] = Commitment();
         commitmentHashers[i].assetId <== assetId;
-        commitmentHashers[i].owner <== stealthAddresses[i].out;
+        commitmentHashers[i].owner <== blindedAddresses[i].out;
         commitmentHashers[i].value <== values[i];
     }
 
