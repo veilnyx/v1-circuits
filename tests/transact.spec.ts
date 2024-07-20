@@ -51,7 +51,7 @@ describe('transact', function () {
     const commitmentsTree = getCmTree();
     const addressTree = getAddrTree();
     commitmentsTree.bulkInsert(inNotes.map((n: any) => n.commitment));
-    addressTree.insert(sender.address);
+    addressTree.insert(sender.rootAddress);
     const hash = randomHex(31);
     const sign = sender.sign(hash);
 
@@ -62,7 +62,7 @@ describe('transact', function () {
     const ephemeralPublicKey = Point.generate(ephemeralKey);
 
     const encryptedInRootAddress = BigInt(
-      slice(elGamal.encrypt(sender.address, encryptionPublicKey, ephemeralKey), 32, 64),
+      slice(elGamal.encrypt(sender.rootAddress, encryptionPublicKey, ephemeralKey), 32, 64),
     );
     const encryptedRefundAddressBlinding =
       BigInt(refundAddress) === 0n
@@ -85,7 +85,7 @@ describe('transact', function () {
       return BigInt(slice(ciphertext, 32, 64));
     });
     const encryptedOutRootAddresses = outNotes.map((n) => {
-      const ciphertext = elGamal.encrypt(n.address, encryptionPublicKey, ephemeralKey);
+      const ciphertext = elGamal.encrypt(n.rootAddress, encryptionPublicKey, ephemeralKey);
       return BigInt(slice(ciphertext, 32, 64));
     });
 
@@ -95,9 +95,9 @@ describe('transact', function () {
       signature: [sign.s, sign.e],
       // address reg
       addressTreeRoot: addressTree.root.toString(),
-      addressPathIndex: addressTree.indexOf(sender.address),
+      addressPathIndex: addressTree.indexOf(sender.rootAddress),
       addressPathElements: addressTree
-        .path(addressTree.indexOf(sender.address))
+        .path(addressTree.indexOf(sender.rootAddress))
         .pathElements.map((x) => BigInt(x)),
       // public
       pubFlow,
@@ -116,7 +116,7 @@ describe('transact', function () {
       // outs
       outRevokerPublicKey: revokerPublicKey.toArray(),
       outAssetIds: outNotes.map((note: any) => note.assetId),
-      outRootAddresses: outNotes.map((note: any) => note.address),
+      outRootAddresses: outNotes.map((note: any) => note.rootAddress),
       outValues: outNotes.map((note: any) => note.value),
       outBlindings: outNotes.map((note: any) => note.blinding),
       outCommitments: outNotes.map((note: any) => note.commitment),

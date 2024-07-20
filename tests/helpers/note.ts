@@ -4,7 +4,7 @@ import { Hex } from 'viem';
 
 export type NoteData = {
   owner: bigint;
-  address: Hex;
+  rootAddress: Hex;
   assetId: number;
   value: bigint;
   commitment: bigint;
@@ -30,14 +30,16 @@ export const createNote = ({
   revokerPublicKey: Point;
 }): NoteData => {
   const r = blinding || randomBigInt(31);
-  const owner = BigInt(poseidonHash([account.address, revokerPublicKey.x, revokerPublicKey.y, r]));
+  const owner = BigInt(
+    poseidonHash([account.rootAddress, revokerPublicKey.x, revokerPublicKey.y, r]),
+  );
   const commitment = BigInt(poseidonHash([assetId, owner, value]));
   const nullifier = BigInt(
     poseidonHash([leafIndex, commitment, revokerPublicKey.mul(account.viewer.privateKey).x]),
   );
 
   return {
-    address: account.address,
+    rootAddress: account.rootAddress,
     owner,
     assetId,
     value,
