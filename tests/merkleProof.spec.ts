@@ -1,7 +1,7 @@
 import { assert } from 'chai';
 import { poseidonHash } from '@zkfi-tech/babyjubjub';
 import { MerkleTree } from 'fixed-merkle-tree';
-import { getCircuit, randomHex } from './helpers';
+import { MSG_ASSERT_FAILED, getCircuit, randomHex } from './helpers';
 
 const getTree = () => new MerkleTree(32, [], { hashFunction: (a, b) => poseidonHash([a, b]) });
 const randomLeaf = () => poseidonHash(randomHex(32));
@@ -83,7 +83,7 @@ describe('merkleProof', function () {
       root,
     };
 
-    await assert.isRejected(circuit.calculateWitness(inputs, true), Error);
+    await assert.isRejected(circuit.calculateWitness(inputs, true), MSG_ASSERT_FAILED);
   });
 
   it('should fail verification for incorrect root when enabled', async function () {
@@ -106,6 +106,6 @@ describe('merkleProof', function () {
       root: badRoot,
     };
 
-    await assert.isRejected(circuit.calculateWitness(inputs, true), Error);
+    await assert.isRejected(circuit.calculateWitness(inputs, true), MSG_ASSERT_FAILED);
   });
 });

@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { getCircuit } from './helpers';
+import { MSG_ASSERT_FAILED, getCircuit } from './helpers';
 
 const token1 = 0x010001;
 const token2 = 0x010002;
@@ -105,14 +105,14 @@ describe('zeroSumNonFungible', function () {
       ...inputs,
       outValues: [0, 1, 2, 0],
     };
-    await assert.isRejected(circuit.calculateWitness(inputs1, true), Error);
+    await assert.isRejected(circuit.calculateWitness(inputs1, true), MSG_ASSERT_FAILED);
 
     // Gaining value
     const inputs2 = {
       ...inputs,
       pubValues: [4, 3, 2, 0],
     };
-    await assert.isRejected(circuit.calculateWitness(inputs2, true), Error);
+    await assert.isRejected(circuit.calculateWitness(inputs2, true), MSG_ASSERT_FAILED);
   });
 
   it('should fail zero sum check for incorrect values with negative flow', async function () {
@@ -134,13 +134,13 @@ describe('zeroSumNonFungible', function () {
       ...inputs,
       outValues: [0, 1, 2, 0],
     };
-    await assert.isRejected(circuit.calculateWitness(inputs1, true), Error);
+    await assert.isRejected(circuit.calculateWitness(inputs1, true), MSG_ASSERT_FAILED);
 
     // Gaining value
     const inputs2 = {
       ...inputs,
       pubValues: [4, 3, 2, 0],
     };
-    await assert.isRejected(circuit.calculateWitness(inputs2, true), Error);
+    await assert.isRejected(circuit.calculateWitness(inputs2, true), MSG_ASSERT_FAILED);
   });
 });

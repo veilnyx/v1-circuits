@@ -1,6 +1,6 @@
 import chai, { assert } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
-import { getCircuit, randomHex } from './helpers';
+import { MSG_ASSERT_FAILED, getCircuit, randomHex } from './helpers';
 
 chai.use(chaiAsPromised);
 
@@ -17,8 +17,8 @@ describe('limitRange', function () {
 
     await assert.isFulfilled(circuit.calculateWitness({ in: n64 }, true));
     await assert.isFulfilled(circuit.calculateWitness({ in: n128 }, true));
-    await assert.isRejected(circuit.calculateWitness({ in: n140 }, true), Error);
-    await assert.isRejected(circuit.calculateWitness({ in: n192 }, true), Error);
+    await assert.isRejected(circuit.calculateWitness({ in: n140 }, true), MSG_ASSERT_FAILED);
+    await assert.isRejected(circuit.calculateWitness({ in: n192 }, true), MSG_ASSERT_FAILED);
   });
 
   it('limits max to 248 bits', async function () {
@@ -26,6 +26,6 @@ describe('limitRange', function () {
 
     await assert.isFulfilled(circuit.calculateWitness({ in: n192 }, true));
     await assert.isFulfilled(circuit.calculateWitness({ in: n248 }, true));
-    await assert.isRejected(circuit.calculateWitness({ in: n256 }, true), Error);
+    await assert.isRejected(circuit.calculateWitness({ in: n256 }, true), MSG_ASSERT_FAILED);
   });
 });

@@ -1,7 +1,7 @@
 import { assert } from 'chai';
 import { randomHex } from '@zkfi-tech/utils';
 import { poseidonHash } from '@zkfi-tech/babyjubjub';
-import { getCircuit, randomAccount } from './helpers';
+import { MSG_ASSERT_FAILED, getCircuit, randomAccount } from './helpers';
 
 describe('ownershipProof', function () {
   this.timeout(8000);
@@ -40,29 +40,30 @@ describe('ownershipProof', function () {
       signature: [badSign.s, badSign.e],
     };
 
-    await assert.isRejected(circuit.calculateWitness(inputs, true), Error);
+    await assert.isRejected(circuit.calculateWitness(inputs, true), MSG_ASSERT_FAILED);
   });
 
   it('should fail verification for incorrect message or public key', async function () {
     const hash = poseidonHash(randomHex(32));
     const badHash = poseidonHash(randomHex(32));
     const account = randomAccount();
+    const sign = account.sign(hash);
     const badAccount = randomAccount();
     const badSign = badAccount.sign(hash);
 
     const badCommitmentInputs = {
       hash: badHash,
-      publicKey: account.signer.publicKey,
+      publicKey: account.signer.publicKey.toArray(),
       signature: [badSign.s, badSign.e],
     };
 
     const badPublicKeyInputs = {
       hash,
-      publicKey: badAccount.signer.publicKey,
-      signature: [badSign.s, badSign.e],
+      publicKey: badAccount.signer.publicKey.toArray(),
+      signature: [sign.s, sign.e],
     };
 
-    await assert.isRejected(circuit.calculateWitness(badCommitmentInputs, true), Error);
-    await assert.isRejected(circuit.calculateWitness(badPublicKeyInputs, true), Error);
+    await assert.isRejected(circuit.calculateWitness(badCommitmentInputs, true), MSG_ASSERT_FAILED);
+    await assert.isRejected(circuit.calculateWitness(badPublicKeyInputs, true), MSG_ASSERT_FAILED);
   });
 });

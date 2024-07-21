@@ -1,6 +1,6 @@
 import { assert } from 'chai';
 import { parseEther } from 'viem';
-import { getCircuit } from './helpers';
+import { MSG_ASSERT_FAILED, getCircuit } from './helpers';
 
 const eth = (n: number) => parseEther(`${n}`);
 
@@ -137,21 +137,21 @@ describe('zeroSumFungible', function () {
       ...inputs,
       outValues: [2, 1, 2, 0].map(eth),
     };
-    await assert.isRejected(circuit.calculateWitness(inputs1, true), Error);
+    await assert.isRejected(circuit.calculateWitness(inputs1, true), MSG_ASSERT_FAILED);
 
     // Gaining value
     const inputs2 = {
       ...inputs,
       outValues: [2, 3, 2, 0].map(eth),
     };
-    await assert.isRejected(circuit.calculateWitness(inputs2, true), Error);
+    await assert.isRejected(circuit.calculateWitness(inputs2, true), MSG_ASSERT_FAILED);
 
     // Gaining public value
     const inputs3 = {
       ...inputs,
       pubValues: [1, 0, 0, 1].map(eth),
     };
-    await assert.isRejected(circuit.calculateWitness(inputs3, true), Error);
+    await assert.isRejected(circuit.calculateWitness(inputs3, true), MSG_ASSERT_FAILED);
   });
 
   it('should fail zero sum check for incorrect values with negative flow', async function () {
@@ -172,20 +172,20 @@ describe('zeroSumFungible', function () {
       ...inputs,
       outValues: [5, 0, 2, 0].map(eth),
     };
-    await assert.isRejected(circuit.calculateWitness(inputs1, true), Error);
+    await assert.isRejected(circuit.calculateWitness(inputs1, true), MSG_ASSERT_FAILED);
 
     // Gaining value
     const inputs2 = {
       ...inputs,
       outValues: [4, 3, 2, 0].map(eth),
     };
-    await assert.isRejected(circuit.calculateWitness(inputs2, true), Error);
+    await assert.isRejected(circuit.calculateWitness(inputs2, true), MSG_ASSERT_FAILED);
 
     // Gaining public value
     const inputs3 = {
       ...inputs,
       pubValues: [2, 0, 0, 1].map(eth),
     };
-    await assert.isRejected(circuit.calculateWitness(inputs3, true), Error);
+    await assert.isRejected(circuit.calculateWitness(inputs3, true), MSG_ASSERT_FAILED);
   });
 });

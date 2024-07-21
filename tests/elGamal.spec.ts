@@ -19,44 +19,47 @@ describe('elGamal', () => {
       '196518003492553066139678792251928226250371319451207574335728467391529880337',
     );
 
-    const encPubKey = Point.generate(privateKey);
-    const ephKey = randomBigInt(31);
-    const ephPubKey = Point.generate(ephKey);
+    const encryptionPublicKey = Point.generate(privateKey);
+    const ephemeralKey = randomBigInt(31);
+    const ephemeralPublicKey = Point.generate(ephemeralKey);
 
-    const ciphertext = elGamal.encrypt(message, encPubKey, ephKey);
+    const ciphertext = elGamal.encrypt(message, encryptionPublicKey, ephemeralKey);
 
     const c = BigInt(sliceHex(ciphertext, 32, 64));
     const inputs = {
-      ephKey,
-      ephPubKey: [ephPubKey.x, ephPubKey.y],
-      encPubKey: [encPubKey.x, encPubKey.y],
+      ephemeralKey,
+      ephemeralPublicKey: [ephemeralPublicKey.x, ephemeralPublicKey.y],
+      encryptionPublicKey: [encryptionPublicKey.x, encryptionPublicKey.y],
       m: message,
       c,
     };
 
-    await assert.isFulfilled(circuit1.calculateWitness(inputs, true));
+    await circuit1.calculateWitness(inputs, true);
+
+    // await assert.isFulfilled(circuit1.calculateWitness(inputs, true));
   });
 
   it('should verify multi encryption in circuit', async () => {
     const messages = [randomBigInt(31), randomBigInt(31), randomBigInt(31)];
     const privateKey = Fr.random(31).toBigInt();
-    const encPubKey = Point.generate(privateKey);
-    const ephKey = Fr.random(31).toBigInt();
-    const ephPubKey = Point.generate(ephKey);
-    const ciphertexts = messages.map((m) => elGamal.encrypt(m, encPubKey, ephKey));
+    const encryptionPublicKey = Point.generate(privateKey);
+    const ephemeralKey = randomBigInt(31);
+    const ephemeralPublicKey = Point.generate(ephemeralKey);
+    const ciphertexts = messages.map((m) => elGamal.encrypt(m, encryptionPublicKey, ephemeralKey));
     const c = ciphertexts.map((c) => BigInt(slice(c, 32, 64)));
 
     const enabled = messages.map(() => 1);
 
     const inputs = {
-      ephKey,
-      ephPubKey: [ephPubKey.x, ephPubKey.y],
-      encPubKey: [encPubKey.x, encPubKey.y],
+      ephemeralKey,
+      ephemeralPublicKey: [ephemeralPublicKey.x, ephemeralPublicKey.y],
+      encryptionPublicKey: [encryptionPublicKey.x, encryptionPublicKey.y],
       m: messages,
       c,
       enabled,
     };
 
-    await assert.isFulfilled(circuit2.calculateWitness(inputs, true));
+    await circuit2.calculateWitness(inputs, true);
+    // await assert.isFulfilled(circuit2.calculateWitness(inputs, true));
   });
 });

@@ -4,23 +4,23 @@ include "./encodeAsset.circom";
 include "./elGamal.circom";
 
 template ComplianceProof(n) {
-    signal input ephKey;
-    signal input ephPubKey[2];
-    signal input encPubKey[2];
+    signal input ephemeralKey;
+    signal input ephemeralPublicKey[2];
+    signal input encryptionPublicKey[2];
 
-    signal input inPublicKeyX;
-    signal input beneficiary;
-    signal input beneficiaryBlinding;
+    signal input inRootAddress;
+    signal input refundAddress;
+    signal input refundAddressBlinding;
     signal input outAssetIds[n];
-    signal input outPublicKeyXs[n];
+    signal input outRootAddresses[n];
     signal input outValues[n];
     signal input outBlindings[n];
 
-    signal input encInPublicKeyX;
-    signal input encBeneficiaryBlinding;
-    signal input encOutAssets[n];
-    signal input encOutBlindings[n];
-    signal input encOutPublicKeyXs[n];
+    signal input encryptedInRootAddress;
+    signal input encryptedRefundAddressBlinding;
+    signal input encryptedOutAssets[n];
+    signal input encryptedOutBlindings[n];
+    signal input encryptedOutRootAddresses[n];
 
     component assetEncoder[n];
     for (var i = 0; i < n; i++) {
@@ -30,134 +30,33 @@ template ComplianceProof(n) {
     }
 
     component encVerifier = ElGamalEncryptMulti(3*n + 2);
-    encVerifier.ephKey <== ephKey;
-    encVerifier.ephPubKey <== ephPubKey;
-    encVerifier.encPubKey <== encPubKey;
+    encVerifier.ephemeralKey <== ephemeralKey;
+    encVerifier.ephemeralPublicKey <== ephemeralPublicKey;
+    encVerifier.encryptionPublicKey <== encryptionPublicKey;
 
     for (var i = 0; i < n; i++) {
         encVerifier.enabled[i] <== 1;
         encVerifier.m[i] <== assetEncoder[i].out;
-        encVerifier.c[i] <== encOutAssets[i];
+        encVerifier.c[i] <== encryptedOutAssets[i];
     }
 
     for (var i = 0; i < n; i++) {
         encVerifier.enabled[n+i] <== 1;
         encVerifier.m[n+i] <== outBlindings[i];
-        encVerifier.c[n+i] <== encOutBlindings[i];
+        encVerifier.c[n+i] <== encryptedOutBlindings[i];
     }
 
     for (var i = 0; i < n; i++) {
         encVerifier.enabled[2*n+i] <== 1;
-        encVerifier.m[2*n+i] <== outPublicKeyXs[i];
-        encVerifier.c[2*n+i] <== encOutPublicKeyXs[i];
+        encVerifier.m[2*n+i] <== outRootAddresses[i];
+        encVerifier.c[2*n+i] <== encryptedOutRootAddresses[i];
     }
 
     encVerifier.enabled[3*n] <== 1;
-    encVerifier.m[3*n] <== inPublicKeyX;
-    encVerifier.c[3*n] <== encInPublicKeyX;
+    encVerifier.m[3*n] <== inRootAddress;
+    encVerifier.c[3*n] <== encryptedInRootAddress;
 
-    encVerifier.enabled[3*n + 1] <== beneficiary;
-    encVerifier.m[3*n + 1] <== beneficiaryBlinding;
-    encVerifier.c[3*n + 1] <== encBeneficiaryBlinding;
+    encVerifier.enabled[3*n + 1] <== refundAddress;
+    encVerifier.m[3*n + 1] <== refundAddressBlinding;
+    encVerifier.c[3*n + 1] <== encryptedRefundAddressBlinding;
 }
-
-// template ComplianceProof(n) {
-//     signal input ephKey;
-//     signal input ephPubKey[2];
-//     signal input encPubKey[2];
-//     signal input assetIds[n];
-//     signal input publicKeyXs[n];
-//     signal input values[n];
-//     signal input blindings[n];
-//     signal input beneficiaryBlinding;
-//     signal input encAssets[n];
-//     signal input encBlindings[n];
-//     signal input encPublicKeyXs[n];
-//     signal input encBeneficiaryBlinding;
-
-//     signal ephKeyBits;
-
-//     component checkEphKey = CheckEphemeralKey();
-//     checkEphKey.ephKey <== ephKey;
-//     checkEphKey.ephPubKey <== ephPubKey;
-//     ephKeyBits <== checkEphKey.out;
-
-//     component assetEncoder[n];
-//     for (var i = 0; i < n; i++) {
-//         assetEncoder[i] = EncodeAsset();
-//         assetEncoder[i].assetId <== assetIds[i];
-//         assetEncoder[i].value <== values[i];
-//     }
-
-//     component checkAssetEnc[n];
-//     for (var i = 0; i < n; i++) { 
-//         checkAssetEnc[i] = CheckEncryption();
-//         check
-//         checkAssetEnc[i].ephKeyBits <== ephKeyBits;
-//         checkAssetEnc[i].encPubKey <== encPubKey;
-//         checkAssetEnc.m[i] <== assetEncoder[i].out;
-//         checkAssetEnc.c[i] <== encAssets[i];
-//     }
-
-//     component checkBlindingEnc[i];
-//     for (var i = 0; i < n; i++) { 
-//         checkBlindingEnc[i] = CheckEncryption();
-//         checkAssetEnc[i].ephKeyBits <== ephKeyBits;
-//         checkAssetEnc[i].encPubKey <== encPubKey;
-//         checkBlindingEnc.m[i] <== blindings[i];
-//         checkBlindingEnc.c[i] <== encBlindings[i];
-//     }
-
-//     component checkPublicKeyXEnc = CheckEncryption(n);
-//     for (var i = 0; i < n; i++) { 
-//         checkPublicKeyXEnc[i] <== CheckEncryption();
-//         checkAssetEnc[i].ephKeyBits <== ephKeyBits;
-//         checkAssetEnc[i].encPubKey <== encPubKey;
-//         checkPublicKeyXEnc.m[i] <== publicKeyXs[i];
-//         checkPublicKeyXEnc.c[i] <== encPublicKeyXs[i];
-//     }
-
-//     component checkBeneficiaryBlindingEnc = CheckEncryption();
-//     checkBeneficiaryBlindingEnc.m <== beneficiaryBlinding;
-//     checkBeneficiaryBlindingEnc.c <== encBeneficiaryBlinding;
-// }
-
-// template ComplianceProof(n) {
-//     signal input ephKey;
-//     signal input ephPubKey[2];
-//     signal input encPubKey[2];
-//     signal input assetIds[n];
-//     signal input publicKeyXs[n];
-//     signal input values[n];
-//     signal input blindings[n];
-//     signal input encAssets[n];
-//     signal input encBlindings[n];
-//     signal input encPublicKeyXs[n];
-
-//     component assetEncoder[n];
-//     for (var i = 0; i < n; i++) {
-//         assetEncoder[i] = EncodeAsset();
-//         assetEncoder[i].assetId <== assetIds[i];
-//         assetEncoder[i].value <== values[i];
-//     }
-
-//     component encVerifier = ElGamalEncryptMulti(3*n);
-//     encVerifier.ephKey <== ephKey;
-//     encVerifier.ephPubKey <== ephPubKey;
-//     encVerifier.encPubKey <== encPubKey;
-
-//     for (var i = 0; i < n; i++) {
-//         encVerifier.m[i] <== assetEncoder[i].out;
-//         encVerifier.c[i] <== encAssets[i];
-//     }
-
-//     for (var i = 0; i < n; i++) {
-//         encVerifier.m[n+i] <== blindings[i];
-//         encVerifier.c[n+i] <== encBlindings[i];
-//     }
-
-//     for (var i = 0; i < n; i++) {
-//         encVerifier.m[2*n+i] <== publicKeyXs[i];
-//         encVerifier.c[2*n+i] <== encPublicKeyXs[i];
-//     }
-// }

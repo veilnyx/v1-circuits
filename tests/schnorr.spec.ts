@@ -1,7 +1,7 @@
 import { assert } from 'chai';
 import { randomHex } from '@zkfi-tech/utils';
 import { poseidonHash } from '@zkfi-tech/babyjubjub';
-import { getCircuit, randomAccount } from './helpers';
+import { MSG_ASSERT_FAILED, getCircuit, randomAccount } from './helpers';
 
 describe('schnorr', function () {
   this.timeout(8000);
@@ -43,6 +43,6 @@ describe('schnorr', function () {
       s: badSign.s,
     };
 
-    await assert.isRejected(circuit.calculateWitness(badInputs, true));
+    await assert.isRejected(circuit.calculateWitness(badInputs, true), MSG_ASSERT_FAILED);
   });
 });

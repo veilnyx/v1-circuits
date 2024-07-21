@@ -7,9 +7,12 @@ import { NoteData, createNote, getCircuit, randomAccount } from './helpers';
 import { encodeAsset } from './helpers/asset';
 
 const eth = (n: number) => parseEther(`${n}`);
-const treeDepth = 32;
-const getTree = () =>
-  new MerkleTree(treeDepth, [], { hashFunction: (a, b) => poseidonHash([a, b]) });
+const cmTreeDepth = 32;
+const addrTreeDepth = 20;
+const getCmTree = () =>
+  new MerkleTree(cmTreeDepth, [], { hashFunction: (a, b) => poseidonHash([a, b]) });
+const getAddrTree = () =>
+  new MerkleTree(addrTreeDepth, [], { hashFunction: (a, b) => poseidonHash([a, b]) });
 
 describe('transact', function () {
   this.timeout(8000);
@@ -19,7 +22,8 @@ describe('transact', function () {
   let receiver;
   let senderPubKey;
   let receiverPubKey;
-  let encPublicKey;
+  let revokerPublicKey;
+  let encryptionPublicKey;
 
   let ft1 = 0x010001;
 
@@ -29,7 +33,8 @@ describe('transact', function () {
     receiver = randomAccount();
     senderPubKey = sender.signer.publicKey.toArray();
     receiverPubKey = receiver.signer.publicKey.toArray();
-    encPublicKey = Point.generate(randomBigInt(31));
+    revokerPublicKey = Point.generate(randomBigInt(31));
+    encryptionPublicKey = Point.generate(randomBigInt(31));
   });
 
   const createTx = ({
@@ -43,73 +48,90 @@ describe('transact', function () {
     outNotes: NoteData[];
     pubValues: bigint[];
   }) => {
-    const tree = getTree();
-    tree.bulkInsert(inNotes.map((n: any) => n.commitment));
+    const commitmentsTree = getCmTree();
+    const addressTree = getAddrTree();
+    commitmentsTree.bulkInsert(inNotes.map((n: any) => n.commitment));
+    addressTree.insert(sender.rootAddress);
     const hash = randomHex(31);
     const sign = sender.sign(hash);
 
-    const beneficiaryBlinding = randomBigInt(31);
-    const beneficiary = poseidonHash([senderPubKey[0], senderPubKey[1], beneficiaryBlinding]);
+    const refundAddressBlinding = randomBigInt(31);
+    const refundAddress = sender.getBlindedAddress(revokerPublicKey, refundAddressBlinding);
 
-    const ephKey = randomBigInt(31);
-    const ephPubKey = Point.generate(ephKey);
+    const ephemeralKey = randomBigInt(31);
+    const ephemeralPublicKey = Point.generate(ephemeralKey);
 
-    const encInPublicKeyX = BigInt(
-      slice(elGamal.encrypt(senderPubKey[0], encPublicKey, ephKey), 32, 64),
+    const encryptedInRootAddress = BigInt(
+      slice(elGamal.encrypt(sender.rootAddress, encryptionPublicKey, ephemeralKey), 32, 64),
     );
-    const encBeneficiaryBlinding =
-      BigInt(beneficiary) === 0n
+    const encryptedRefundAddressBlinding =
+      BigInt(refundAddress) === 0n
         ? 0
-        : BigInt(slice(elGamal.encrypt(beneficiaryBlinding, encPublicKey, ephKey), 32, 64));
+        : BigInt(
+            slice(
+              elGamal.encrypt(refundAddressBlinding, encryptionPublicKey, ephemeralKey),
+              32,
+              64,
+            ),
+          );
 
     const assets = outNotes.map((note: any) => encodeAsset(note.assetId, note.value));
-    const encOutAssets = assets.map((a) => {
-      const ciphertext = elGamal.encrypt(a, encPublicKey, ephKey);
+    const encryptedOutAssets = assets.map((a) => {
+      const ciphertext = elGamal.encrypt(a, encryptionPublicKey, ephemeralKey);
       return BigInt(slice(ciphertext, 32, 64));
     });
-    const encOutBlindings = outNotes.map((n) => {
-      const ciphertext = elGamal.encrypt(n.blinding, encPublicKey, ephKey);
+    const encryptedOutBlindings = outNotes.map((n) => {
+      const ciphertext = elGamal.encrypt(n.blinding, encryptionPublicKey, ephemeralKey);
       return BigInt(slice(ciphertext, 32, 64));
     });
-    const encOutPublicKeyXs = outNotes.map((n) => {
-      const ciphertext = elGamal.encrypt(n.pubKey[0], encPublicKey, ephKey);
+    const encryptedOutRootAddresses = outNotes.map((n) => {
+      const ciphertext = elGamal.encrypt(n.rootAddress, encryptionPublicKey, ephemeralKey);
       return BigInt(slice(ciphertext, 32, 64));
     });
 
     const inputs = {
-      merkleRoot: tree.root.toString(),
+      commitmentTreeRoot: commitmentsTree.root.toString(),
       hash,
       signature: [sign.s, sign.e],
+      // address reg
+      addressTreeRoot: addressTree.root.toString(),
+      addressPathIndex: addressTree.indexOf(sender.rootAddress),
+      addressPathElements: addressTree
+        .path(addressTree.indexOf(sender.rootAddress))
+        .pathElements.map((x) => BigInt(x)),
       // public
       pubFlow,
       pubAssetIds: [ft1, ft1],
       pubValues: pubValues,
       // ins
-      inPublicKey: senderPubKey,
+      inViewPrivateKey: sender.viewer.privateKey,
+      inSignPublicKey: sender.signer.publicKey.toArray(),
+      inRevokerPublicKeys: inNotes.map(() => revokerPublicKey.toArray()),
       inAssetIds: inNotes.map((note: any) => note.assetId),
       inValues: inNotes.map((note: any) => note.value),
       inBlindings: inNotes.map((note: any) => note.blinding),
       inNullifiers: inNotes.map((note: any) => note.nullifier),
       inPathIndices: inNotes.map((n) => n.leafIndex),
-      inPathElements: inNotes.map((n) => tree.path(n.leafIndex).pathElements),
+      inPathElements: inNotes.map((n) => commitmentsTree.path(n.leafIndex).pathElements),
       // outs
+      outRevokerPublicKey: revokerPublicKey.toArray(),
       outAssetIds: outNotes.map((note: any) => note.assetId),
-      outPublicKeys: outNotes.map((note: any) => note.pubKey),
+      outRootAddresses: outNotes.map((note: any) => note.rootAddress),
       outValues: outNotes.map((note: any) => note.value),
       outBlindings: outNotes.map((note: any) => note.blinding),
       outCommitments: outNotes.map((note: any) => note.commitment),
-      // beneficiary
-      beneficiary,
-      beneficiaryBlinding,
+      // refund address
+      refundAddress,
+      refundAddressBlinding,
       // encryptions
-      ephKey,
-      ephPubKey: [ephPubKey.x, ephPubKey.y],
-      encPubKey: encPublicKey.toArray(),
-      encInPublicKeyX,
-      encBeneficiaryBlinding,
-      encOutAssets,
-      encOutBlindings,
-      encOutPublicKeyXs,
+      ephemeralKey,
+      ephemeralPublicKey: ephemeralPublicKey.toArray(),
+      encryptionPublicKey: encryptionPublicKey.toArray(),
+      encryptedInRootAddress,
+      encryptedRefundAddressBlinding,
+      encryptedOutAssets,
+      encryptedOutBlindings,
+      encryptedOutRootAddresses,
     };
     return inputs;
   };
@@ -119,7 +141,8 @@ describe('transact', function () {
     const pubValues = [eth(5), eth(0)];
     const inNotes = pubValues.map((_, i) => {
       return createNote({
-        pubKey: senderPubKey,
+        account: sender,
+        revokerPublicKey,
         value: eth(0),
         assetId: 0,
         leafIndex: i,
@@ -127,13 +150,15 @@ describe('transact', function () {
     });
     const outNotes = [
       createNote({
-        pubKey: senderPubKey,
+        account: sender,
+        revokerPublicKey,
         value: eth(5),
         assetId: ft1,
         leafIndex: 2,
       }),
       createNote({
-        pubKey: senderPubKey,
+        account: sender,
+        revokerPublicKey,
         value: eth(0),
         assetId: ft1,
         leafIndex: 3,
@@ -149,13 +174,15 @@ describe('transact', function () {
     const pubValues = [eth(5), eth(0)];
     const inNotes = [
       createNote({
-        pubKey: senderPubKey,
+        account: sender,
+        revokerPublicKey,
         value: eth(10),
         assetId: ft1,
         leafIndex: 0,
       }),
       createNote({
-        pubKey: senderPubKey,
+        account: sender,
+        revokerPublicKey,
         value: eth(20),
         assetId: ft1,
         leafIndex: 1,
@@ -163,13 +190,15 @@ describe('transact', function () {
     ];
     const outNotes = [
       createNote({
-        pubKey: senderPubKey,
+        account: sender,
+        revokerPublicKey,
         value: eth(15),
         assetId: ft1,
         leafIndex: 2,
       }),
       createNote({
-        pubKey: receiverPubKey,
+        account: sender,
+        revokerPublicKey,
         value: eth(20),
         assetId: ft1,
         leafIndex: 3,
@@ -184,13 +213,15 @@ describe('transact', function () {
     const pubValues = [eth(0), eth(0)];
     const inNotes = [
       createNote({
-        pubKey: senderPubKey,
+        account: sender,
+        revokerPublicKey,
         value: eth(10),
         assetId: ft1,
         leafIndex: 0,
       }),
       createNote({
-        pubKey: senderPubKey,
+        account: sender,
+        revokerPublicKey,
         value: eth(20),
         assetId: ft1,
         leafIndex: 1,
@@ -198,13 +229,15 @@ describe('transact', function () {
     ];
     const outNotes = [
       createNote({
-        pubKey: senderPubKey,
+        account: sender,
+        revokerPublicKey,
         value: eth(10),
         assetId: ft1,
         leafIndex: 2,
       }),
       createNote({
-        pubKey: receiverPubKey,
+        account: sender,
+        revokerPublicKey,
         value: eth(20),
         assetId: ft1,
         leafIndex: 3,
@@ -219,13 +252,15 @@ describe('transact', function () {
     const pubValues = [eth(5), eth(0)];
     const inNotes = [
       createNote({
-        pubKey: senderPubKey,
+        account: sender,
+        revokerPublicKey,
         value: eth(10),
         assetId: ft1,
         leafIndex: 0,
       }),
       createNote({
-        pubKey: senderPubKey,
+        account: sender,
+        revokerPublicKey,
         value: eth(20),
         assetId: ft1,
         leafIndex: 1,
@@ -233,13 +268,15 @@ describe('transact', function () {
     ];
     const outNotes = [
       createNote({
-        pubKey: senderPubKey,
+        account: sender,
+        revokerPublicKey,
         value: eth(5),
         assetId: ft1,
         leafIndex: 2,
       }),
       createNote({
-        pubKey: receiverPubKey,
+        account: receiver,
+        revokerPublicKey,
         value: eth(20),
         assetId: ft1,
         leafIndex: 3,
