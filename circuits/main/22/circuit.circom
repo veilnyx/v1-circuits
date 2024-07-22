@@ -15,9 +15,9 @@ component main { public [
     refundAddress,                  // len: 1
     encryptionPublicKey,            // len: 2
     ephemeralPublicKey,             // len: 2
-    encryptedInAddress,             // len: 1
+    encryptedInRootAddress,         // len: 1
     encryptedRefundAddressBlinding, // len: 1
     encryptedOutAssets,             // len: nOuts
     encryptedOutBlindings,          // len: nOuts
-    encryptedOutAddresses           // len: nOuts
+    encryptedOutRootAddresses       // len: nOuts
 ]} = Transact(20, 25, 2, 2);        // total: 13 + nIns + 6 * nOuts
