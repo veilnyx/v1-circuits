@@ -61,6 +61,9 @@ devDependencies:
   fixed-merkle-tree:
     specifier: ^0.7.3
     version: 0.7.3
+  r1csfile:
+    specifier: ^0.0.48
+    version: 0.0.48
   shelljs:
     specifier: ^0.8.5
     version: 0.8.5
@@ -457,6 +460,13 @@ packages:
     dependencies:
       fastfile: 0.0.20
       ffjavascript: 0.2.59
+    dev: true
+
+  /@iden3/binfileutils@0.0.12:
+    resolution: {integrity: sha512-naAmzuDufRIcoNfQ1d99d7hGHufLA3wZSibtr4dMe6ZeiOPV1KwOZWTJ1YVz4HbaWlpDuzVU72dS4ATQS4PXBQ==}
+    dependencies:
+      fastfile: 0.0.20
+      ffjavascript: 0.3.0
     dev: true
 
   /@jridgewell/resolve-uri@3.1.1:
@@ -1648,6 +1658,14 @@ packages:
       web-worker: 1.2.0
     dev: true
 
+  /ffjavascript@0.3.0:
+    resolution: {integrity: sha512-l7sR5kmU3gRwDy8g0Z2tYBXy5ttmafRPFOqY7S6af5cq51JqJWt5eQ/lSR/rs2wQNbDYaYlQr5O+OSUf/oMLoQ==}
+    dependencies:
+      wasmbuilder: 0.0.16
+      wasmcurves: 0.2.2
+      web-worker: 1.2.0
+    dev: true
+
   /ffwasm@0.0.7:
     resolution: {integrity: sha512-17cTLzv7HHAKqZbX8MvHxjSrR0yDdn1sh4TVsTbAvO9e6klhFicnyoVXc/sCuViV/M8g65sCmVrAmoPCZp1YkQ==}
     dependencies:
@@ -1776,6 +1794,7 @@ packages:
 
   /glob@7.2.0:
     resolution: {integrity: sha512-lmLf6gtyrPq8tTjSmrO94wBeQbFR3HbLHbuyD69wuyQkImp2hWqMGB47OX65FBkPffO641IP9jWa1z4ivqG26Q==}
+    deprecated: Glob versions prior to v9 are no longer supported
     dependencies:
       fs.realpath: 1.0.0
       inflight: 1.0.6
@@ -2410,6 +2429,15 @@ packages:
       ffjavascript: 0.2.57
     dev: true
 
+  /r1csfile@0.0.48:
+    resolution: {integrity: sha512-kHRkKUJNaor31l05f2+RFzvcH5XSa7OfEfd/l4hzjte6NL6fjRkSMfZ4BjySW9wmfdwPOtq3mXurzPvPGEf5Tw==}
+    dependencies:
+      '@iden3/bigarray': 0.0.2
+      '@iden3/binfileutils': 0.0.12
+      fastfile: 0.0.20
+      ffjavascript: 0.3.0
+    dev: true
+
   /randombytes@2.1.0:
     resolution: {integrity: sha512-vYl3iOX+4CKUWuxGi9Ukhie6fsqXqS9FE2Zaic4tNFD2N2QQaXOMFbuKK4QmDHC0JO6B1Zp41J0LpT0oR68amQ==}
     dependencies:
@@ -2923,6 +2951,12 @@ packages:
 
   /wasmcurves@0.2.1:
     resolution: {integrity: sha512-9ciO7bUE5bgpbOcdK7IO3enrSVIKHwrQmPibok4GLJWaCA7Wyqc9PRYnu5HbiFv9NDFNqVKPtU5R6Is5KujBLg==}
+    dependencies:
+      wasmbuilder: 0.0.16
+    dev: true
+
+  /wasmcurves@0.2.2:
+    resolution: {integrity: sha512-JRY908NkmKjFl4ytnTu5ED6AwPD+8VJ9oc94kdq7h5bIwbj0L4TDJ69mG+2aLs2SoCmGfqIesMWTEJjtYsoQXQ==}
     dependencies:
       wasmbuilder: 0.0.16
     dev: true
