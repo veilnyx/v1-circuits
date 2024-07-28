@@ -10,6 +10,8 @@
   },
   "keywords": [],
   "dependencies": {
+    "@zk-kit/poseidon-cipher": "^0.3.1",
+    "@zk-kit/poseidon-cipher.circom": "1.0.0-beta.1",
     "circomlib": "^2.0.5"
   },
   "devDependencies": {
