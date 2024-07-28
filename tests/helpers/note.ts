@@ -4,7 +4,7 @@ import { Hex } from 'viem';
 
 export type NoteData = {
   owner: bigint;
-  rootAddress: Hex;
+  rootAddress: bigint;
   assetId: number;
   value: bigint;
   commitment: bigint;

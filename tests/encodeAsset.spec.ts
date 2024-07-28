@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { randomHex, toBigInt } from '@zkfi-tech/utils';
+import { randomBigInt, randomHex, toBigInt } from '@zkfi-tech/utils';
 import { getCircuit } from './helpers';
 import { encodeAsset } from './helpers/asset';
 
@@ -11,8 +11,8 @@ describe('encodeAsset', () => {
   });
 
   it('should correctly encode asset', async () => {
-    const assetId = '0x010001'; // 3 bytes
-    const value = randomHex(16); // 28 bytes
+    const assetId = 0x010001; // 3 bytes
+    const value = randomBigInt(16); // 28 bytes
 
     // 31 bytes
     const encoded = encodeAsset(assetId, value);
