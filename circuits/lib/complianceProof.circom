@@ -1,62 +1,50 @@
 pragma circom 2.1.5;
 
-include "./encodeAsset.circom";
+include "./ecc.circom";
 include "./elGamal.circom";
+include "./encodeAsset.circom";
+include "./poseidonCipher.circom";
 
 template ComplianceProof(n) {
     signal input ephemeralKey;
-    signal input ephemeralPublicKey[2];
-    signal input encryptionPublicKey[2];
+    signal input keyEncryptionPublicKey[2];
+    signal input dataEncryptionPrivateKey;
 
-    signal input inRootAddress;
-    signal input refundAddress;
-    signal input refundAddressBlinding;
-    signal input outAssetIds[n];
-    signal input outRootAddresses[n];
-    signal input outValues[n];
-    signal input outBlindings[n];
+    // n notes with 3 elements each and 2 additional elements - 
+    // sender root address & refund address blinding
+    var plainDataLen = 3*n + 2;
 
-    signal input encryptedInRootAddress;
-    signal input encryptedRefundAddressBlinding;
-    signal input encryptedOutAssets[n];
-    signal input encryptedOutBlindings[n];
-    signal input encryptedOutRootAddresses[n];
+    // poseidon encryption output size for 3*n + 2 elements (3*n + 2 + 2 elements)
+    var poseidonCiphertextLen = 3*n + 2 + 2;
 
-    component assetEncoder[n];
-    for (var i = 0; i < n; i++) {
-        assetEncoder[i] = EncodeAsset();
-        assetEncoder[i].assetId <== outAssetIds[i];
-        assetEncoder[i].value <== outValues[i];
+    // Ephemeral public key (2 elements)
+    // + encrypted data encryption private key (1 element)
+    // + poseidon encryption outputs (3*n + 2 + 2 elements)
+    var ciphertextLen = 2 + 1 + poseidonCiphertextLen;
+
+    signal input plainData[plainDataLen];
+    signal input encryptedData[ciphertextLen];
+
+    // Check encryption of key used for data encryption
+    component elGamalEncrypt = ElGamalEncrypt();
+    elGamalEncrypt.ephemeralKey <== ephemeralKey;
+    elGamalEncrypt.ephemeralPublicKey[0] <== encryptedData[0];
+    elGamalEncrypt.ephemeralPublicKey[1] <== encryptedData[1];
+    elGamalEncrypt.encryptionPublicKey <== keyEncryptionPublicKey;
+    elGamalEncrypt.m <== dataEncryptionPrivateKey;
+    elGamalEncrypt.out === encryptedData[2];
+
+    component dataEncryptionPubliceKey = PrivateKeyToPublicKey();
+    dataEncryptionPubliceKey.privateKey <== dataEncryptionPrivateKey;
+
+    component poseidonDecrypt = PoseidonDecrypt(plainDataLen);
+    poseidonDecrypt.nonce <== 0;
+    poseidonDecrypt.key <== dataEncryptionPubliceKey.out;
+    for (var i = 0; i < poseidonCiphertextLen; i++) {
+        poseidonDecrypt.ciphertext[i] <== encryptedData[i + 3];
     }
 
-    component encVerifier = ElGamalEncryptMulti(3*n + 2);
-    encVerifier.ephemeralKey <== ephemeralKey;
-    encVerifier.ephemeralPublicKey <== ephemeralPublicKey;
-    encVerifier.encryptionPublicKey <== encryptionPublicKey;
-
-    for (var i = 0; i < n; i++) {
-        encVerifier.enabled[i] <== 1;
-        encVerifier.m[i] <== assetEncoder[i].out;
-        encVerifier.c[i] <== encryptedOutAssets[i];
+    for (var i = 0; i < plainDataLen; i++) {
+        poseidonDecrypt.decrypted[i] === plainData[i];
     }
-
-    for (var i = 0; i < n; i++) {
-        encVerifier.enabled[n+i] <== 1;
-        encVerifier.m[n+i] <== outBlindings[i];
-        encVerifier.c[n+i] <== encryptedOutBlindings[i];
-    }
-
-    for (var i = 0; i < n; i++) {
-        encVerifier.enabled[2*n+i] <== 1;
-        encVerifier.m[2*n+i] <== outRootAddresses[i];
-        encVerifier.c[2*n+i] <== encryptedOutRootAddresses[i];
-    }
-
-    encVerifier.enabled[3*n] <== 1;
-    encVerifier.m[3*n] <== inRootAddress;
-    encVerifier.c[3*n] <== encryptedInRootAddress;
-
-    encVerifier.enabled[3*n + 1] <== refundAddress;
-    encVerifier.m[3*n + 1] <== refundAddressBlinding;
-    encVerifier.c[3*n + 1] <== encryptedRefundAddressBlinding;
 }

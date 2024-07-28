@@ -47,19 +47,18 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     signal input outBlindings[nOuts];
     signal input outCommitments[nOuts];
 
-    // pubValues addresses for any deposits to shielded account
+    // blinded addresses for any public deposits to shielded account
     signal input refundAddress;
     signal input refundAddressBlinding;
 
-    // Encrypted data
-    signal input encryptionPublicKey[2];
     signal input ephemeralKey;
-    signal input ephemeralPublicKey[2];
-    signal input encryptedInRootAddress;
-    signal input encryptedRefundAddressBlinding;
-    signal input encryptedOutAssets[nOuts];
-    signal input encryptedOutBlindings[nOuts];
-    signal input encryptedOutRootAddresses[nOuts];
+    signal input keyEncryptionPublicKey[2];
+    signal input dataEncryptionPrivateKey;
+    // Encryption data:
+    //   Ephemeral public key (2 elements)
+    // + Encrypted data encryption private key (1 element)
+    // + Poseidon encryption outputs (3*n + 2 + 2 elements)
+    signal input encryptedData[2 + 1 + 3*nOuts + 2 + 2];
 
     var MAX_BITS_VALUE = 224;
 
@@ -216,25 +215,25 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     refundAddressCheck.blinding <== refundAddressBlinding;
     refundAddressCheck.blindedAddress <== refundAddress;
 
+    // Encode assetId + value
+    component assetEncoder[nOuts];
+    for (var i = 0; i < nOuts; i++) {
+        assetEncoder[i] = EncodeAsset();
+        assetEncoder[i].assetId <== outAssetIds[i];
+        assetEncoder[i].value <== outValues[i];
+    }
+
     // Compliance encryption checks
     component complianceProof = ComplianceProof(nOuts);
     complianceProof.ephemeralKey <== ephemeralKey;
-    complianceProof.ephemeralPublicKey <== ephemeralPublicKey;
-    complianceProof.encryptionPublicKey <== encryptionPublicKey;
-
-    complianceProof.inRootAddress <== inRootAddress.out;
-    complianceProof.refundAddress <== refundAddress;
-    complianceProof.refundAddressBlinding <== refundAddressBlinding;
-    complianceProof.outAssetIds <== outAssetIds;
+    complianceProof.keyEncryptionPublicKey <== keyEncryptionPublicKey;
+    complianceProof.dataEncryptionPrivateKey <== dataEncryptionPrivateKey;
+    complianceProof.plainData[0] <== inRootAddress.out;
+    complianceProof.plainData[1] <== refundAddressBlinding;
     for (var i = 0; i < nOuts; i++) {
-        complianceProof.outRootAddresses[i] <== outRootAddresses[i];
+        complianceProof.plainData[2 + 3*i] <== assetEncoder[i].out;
+        complianceProof.plainData[3 + 3*i] <== outRootAddresses[i];
+        complianceProof.plainData[4 + 3*i] <== outBlindings[i];
     }
-    complianceProof.outValues <== outValues;
-    complianceProof.outBlindings <== outBlindings;
-    
-    complianceProof.encryptedInRootAddress <== encryptedInRootAddress;
-    complianceProof.encryptedRefundAddressBlinding <== encryptedRefundAddressBlinding;
-    complianceProof.encryptedOutAssets <== encryptedOutAssets;
-    complianceProof.encryptedOutRootAddresses <== encryptedOutRootAddresses;
-    complianceProof.encryptedOutBlindings <== encryptedOutBlindings;
+    complianceProof.encryptedData <== encryptedData;
 }
