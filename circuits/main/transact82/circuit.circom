@@ -13,11 +13,6 @@ component main { public [
     outRevokerPublicKey,            // len: 2
     outCommitments,                 // len: nOuts
     refundAddress,                  // len: 1
-    encryptionPublicKey,            // len: 2
-    ephemeralPublicKey,             // len: 2
-    encryptedInAddress,             // len: 1
-    encryptedRefundAddressBlinding, // len: 1
-    encryptedOutAssets,             // len: nOuts
-    encryptedOutBlindings,          // len: nOuts
-    encryptedOutAddresses           // len: nOuts
-]} = Transact(20, 25, 2, 2);        // total: 13 + nIns + 6 * nOuts
+    keyEncryptionPublicKey,         // len: 2
+    encryptedData                   // len: 2 + 1 + 3*nOuts + 2 + 2
+]} = Transact(20, 25, 2, 2);        // total: 16 + nIns + 6 * nOuts
