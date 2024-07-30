@@ -54,7 +54,7 @@ const getPTauFile = (nVars: number) => {
 
   const pTauFile = `${config.outDir}/ptau${power}`;
   if (!existsSync(pTauFile)) {
-    console.log(`Downloading ptau file...`);
+    console.log(`Downloading ptau file: ${pTauFile}...`);
     //@ts-ignore
     shell.exec(`curl -L ${config.pTauUrls[power as any]} --create-dirs -o ${pTauFile}`);
   }
