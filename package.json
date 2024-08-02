@@ -22,15 +22,13 @@
     "@types/shelljs": "^0.8.12",
     "@typescript-eslint/eslint-plugin": "^5.48.2",
     "@typescript-eslint/parser": "^5.48.2",
-    "@zkfi-tech/babyjubjub": "^1.0.2",
+    "@zkfi-tech/babyjubjub": "^1.3.0",
     "@zkfi-tech/shared-types": "^1.0.0",
     "@zkfi-tech/utils": "^1.0.0",
     "chai": "^4.3.7",
     "chai-as-promised": "^7.1.1",
     "circom_tester": "^0.0.19",
     "eslint": "^8.32.0",
-    "ethers": "^5.7.2",
-    "ffjavascript": "^0.2.59",
     "fixed-merkle-tree": "^0.7.3",
     "r1csfile": "^0.0.48",
     "shelljs": "^0.8.5",
@@ -38,7 +36,6 @@
     "ts-mocha": "^10.0.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.1.3",
-    "viem": "^1.20.3",
-    "xcircomlib": "npm:circomlib@^0.5.5"
+    "viem": "^2.18.2"
   }
 }
