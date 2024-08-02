@@ -1,6 +1,7 @@
-import { Point, poseidonHash } from '@zkfi-tech/babyjubjub';
-import { expectEqFe, getCircuit, randomHex } from './helpers';
+import { expect } from 'chai';
 import { randomBigInt } from '@zkfi-tech/utils';
+import { Point, poseidonHash } from '@zkfi-tech/babyjubjub';
+import { getCircuit } from './helpers';
 
 describe('nullifier', function () {
   this.timeout(8000);
@@ -27,8 +28,7 @@ describe('nullifier', function () {
     ]);
 
     const witness = await circuit.calculateWitness(inputs);
-
-    expectEqFe(witness[1], nullifier);
+    expect(witness[1]).to.equal(nullifier);
 
     await circuit.checkConstraints(witness);
   });

@@ -1,14 +1,12 @@
 import { assert, expect } from 'chai';
-import { poseidonHash } from '@zkfi-tech/babyjubjub';
+import { hexToBigInt, keccak256, stringToBytes } from 'viem';
 import { MerkleTree } from 'fixed-merkle-tree';
-import { MSG_ASSERT_FAILED, fieldsSize, getCircuit, randomHex } from './helpers';
-import { bytesToBigInt, hexToBigInt, keccak256, stringToBytes, toHex } from 'viem';
+import { randomBigInt } from '@zkfi-tech/utils';
+import { fieldsSize, getCircuit, getMerkleTree, toPaddedHex } from './helpers';
 
 const treeDepth = 32;
-const hashFunction = (a, b) => poseidonHash([a, b]);
 const zeroLeaf = hexToBigInt(keccak256(stringToBytes('zkFi'))) % BigInt(fieldsSize);
-
-const getTree = () => new MerkleTree(treeDepth, [], { hashFunction, zeroElement: toHex(zeroLeaf) });
+const getTree = () => getMerkleTree(treeDepth, [], zeroLeaf);
 const getLastSubtree = (tree: MerkleTree) => {
   const nLevels = tree.levels;
   const subtree: any[] = [];
@@ -27,7 +25,7 @@ const getLastSubtree = (tree: MerkleTree) => {
   return subtree.map((el) => BigInt(el));
 };
 
-const randomLeaf = () => poseidonHash(randomHex(32));
+const randomLeaf = () => toPaddedHex(randomBigInt(32));
 
 describe('subtreeUpdate', function () {
   this.timeout(20000);

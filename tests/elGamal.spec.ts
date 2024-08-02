@@ -1,5 +1,4 @@
 import { expect } from 'chai';
-import { sliceHex } from 'viem';
 import { Point, elGamal } from '@zkfi-tech/babyjubjub';
 import { randomBigInt } from '@zkfi-tech/utils';
 import { getCircuit } from './helpers';
@@ -23,7 +22,7 @@ describe('elGamal', () => {
 
     const ciphertext = elGamal.encrypt(message, encryptionPublicKey, ephemeralKey);
 
-    const c = BigInt(sliceHex(ciphertext, 32, 64));
+    const c = ciphertext[2];
     const inputs = {
       ephemeralKey,
       ephemeralPublicKey: ephemeralPublicKey.toArray(),

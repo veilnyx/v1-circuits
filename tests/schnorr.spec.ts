@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { randomHex } from '@zkfi-tech/utils';
+import { randomBigInt } from '@zkfi-tech/utils';
 import { poseidonHash } from '@zkfi-tech/babyjubjub';
 import { MSG_ASSERT_FAILED, getCircuit, randomAccount } from './helpers';
 
@@ -12,7 +12,7 @@ describe('schnorr', function () {
   });
 
   it('should verify successfully for correct signature', async function () {
-    const message = poseidonHash(randomHex(32));
+    const message = poseidonHash([randomBigInt(31)]);
     const account = randomAccount();
     const sign = account.sign(message);
 
@@ -30,7 +30,7 @@ describe('schnorr', function () {
   });
 
   it('should fail verification for bad signatures', async function () {
-    const message = poseidonHash(randomHex(32));
+    const message = poseidonHash([randomBigInt(31)]);
     const account = randomAccount();
 
     const badAccount = randomAccount();

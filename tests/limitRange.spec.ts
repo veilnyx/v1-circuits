@@ -1,15 +1,16 @@
 import chai, { assert } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
-import { MSG_ASSERT_FAILED, getCircuit, randomHex } from './helpers';
+import { randomBigInt } from '@zkfi-tech/utils';
+import { MSG_ASSERT_FAILED, getCircuit } from './helpers';
 
 chai.use(chaiAsPromised);
 
-const n64 = randomHex(8);
-const n128 = randomHex(16);
-const n140 = randomHex(20);
-const n192 = randomHex(24);
-const n248 = randomHex(31);
-const n256 = randomHex(32);
+const n64 = randomBigInt(8);
+const n128 = randomBigInt(16);
+const n140 = randomBigInt(20);
+const n192 = randomBigInt(24);
+const n248 = randomBigInt(31);
+const n256 = randomBigInt(32);
 
 describe('limitRange', function () {
   it('limits max to 128 bits', async function () {
