@@ -1,23 +1,20 @@
-import { sliceHex } from 'viem';
-import { Point, elGamal } from '@zkfi-tech/babyjubjub';
+import { Point, elGamal, poseidonEncrypt } from '@zkfi-tech/babyjubjub';
 import { randomBigInt } from '@zkfi-tech/utils';
-import { poseidonEncrypt } from '@zk-kit/poseidon-cipher';
 import { encodeAsset } from './helpers/asset';
-import { getCircuit, randomAccount } from './helpers';
+import { createNote, deriveKeys, getCircuit, randomAccount } from './helpers';
 
 const t1: number = 0x010001;
 const t2: number = 0x010002;
 const t3: number = 0x020000;
 
 describe('complianceProof', function () {
+  this.timeout(10000);
   let circuit;
 
   const revokerPublicKey = Point.generate(randomBigInt(31));
-  const keyEncryptionPublicKey = Point.generate(randomBigInt(31));
-  const dataEncryptionPrivateKey = randomBigInt(31);
-  const dataEncryptionPublicKey = Point.generate(dataEncryptionPrivateKey);
-  const ephemeralKey = randomBigInt(31);
-  const ephemeralPublicKey = Point.generate(ephemeralKey);
+  const keySeedEncryptionPublicKey = Point.generate(randomBigInt(31));
+  const dataEncryptionKeySeed = randomBigInt(31);
+  const keySeedEncryptionEphemeralKey = randomBigInt(31);
   const senderAcc = randomAccount();
 
   before(async function () {
@@ -25,49 +22,44 @@ describe('complianceProof', function () {
   });
 
   it('should verify for correct compliance inputs', async function () {
-    const inRootAddress = senderAcc.rootAddress;
     const refundAddressBlinding = randomBigInt(31);
 
-    const outAssetIds = [t1, t1, t2, t3];
-    const outValues = outAssetIds.map((_) => randomBigInt(16));
-    const outBlindings = outAssetIds.map((_) => randomBigInt(31));
-    const outRootAddresses = outAssetIds.map((_) => randomBigInt(31));
-    const outAssets = outValues.map((v, i) => encodeAsset(outAssetIds[i], v));
-
-    const encryptedDataEncryptionPrivateKey = BigInt(
-      sliceHex(
-        elGamal.encrypt(dataEncryptionPrivateKey, keyEncryptionPublicKey, ephemeralKey),
-        32,
-        64,
-      ),
+    const n = 4;
+    const notes = Array.from({ length: n }, () =>
+      createNote({
+        account: senderAcc,
+        value: randomBigInt(16),
+        assetId: t1,
+        leafIndex: Number(randomBigInt(2)),
+        revokerPublicKey: revokerPublicKey,
+      }),
     );
+    const assets = notes.map((n) => encodeAsset(n.assetId, n.value));
 
-    const plainData = [
-      inRootAddress,
-      refundAddressBlinding,
-      ...outAssets,
-      ...outRootAddresses,
-      ...outBlindings,
-    ];
+    const dataEncryptionPrivateKeys = deriveKeys(dataEncryptionKeySeed, n + 1);
+    const dataEncryptionPublicKeys = dataEncryptionPrivateKeys.map((k) => Point.generate(k));
 
-    const encryptedNoteData: bigint[] = poseidonEncrypt(
-      plainData,
-      dataEncryptionPublicKey.toArray() as any,
-      BigInt(0),
+    const senderData = [senderAcc.rootAddress, refundAddressBlinding];
+    const noteData = notes.map((n, i) => [assets[i], n.rootAddress, n.blinding]);
+    const [encryptedSenderData, ...encryptedNoteData] = [senderData, ...noteData].map((d, i) => {
+      return poseidonEncrypt(d, dataEncryptionPublicKeys[i], BigInt(0));
+    });
+
+    const encryptedDataEncryptionKeySeed = elGamal.encrypt(
+      dataEncryptionKeySeed,
+      keySeedEncryptionPublicKey,
+      keySeedEncryptionEphemeralKey,
     );
-
-    const encryptedData = [
-      ...ephemeralPublicKey.toArray(),
-      encryptedDataEncryptionPrivateKey,
-      ...encryptedNoteData,
-    ];
 
     const inputs = {
-      ephemeralKey,
-      keyEncryptionPublicKey: keyEncryptionPublicKey.toArray(),
-      dataEncryptionPrivateKey,
-      plainData,
-      encryptedData,
+      keySeedEncryptionEphemeralKey,
+      keySeedEncryptionPublicKey: keySeedEncryptionPublicKey.toArray(),
+      dataEncryptionKeySeed,
+      senderData,
+      noteData,
+      encryptedDataEncryptionKeySeed,
+      encryptedSenderData,
+      encryptedNoteData,
     };
 
     const witness = await circuit.calculateWitness(inputs);

@@ -1,14 +1,14 @@
-pragma circom 2.1.5;
+pragma circom 2.1.6;
 
+include "./utils.circom";
 include "./address.circom";
-include "./limitRange.circom";
-include "./commitment.circom";
 include "./nullifier.circom";
+include "./commitment.circom";
 include "./merkleProof.circom";
 include "./ownershipProof.circom";
+include "./complianceProof.circom";
 include "./zeroSumFungible.circom";
 include "./zeroSumNonFungible.circom";
-include "./complianceProof.circom";
 
 template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     // Recent merkle roots
@@ -51,14 +51,12 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     signal input refundAddress;
     signal input refundAddressBlinding;
 
-    signal input ephemeralKey;
-    signal input keyEncryptionPublicKey[2];
-    signal input dataEncryptionPrivateKey;
-    // Encryption data:
-    //   Ephemeral public key (2 elements)
-    // + Encrypted data encryption private key (1 element)
-    // + Poseidon encryption outputs (3*n + 2 + 2 elements)
-    signal input encryptedData[2 + 1 + 3*nOuts + 2 + 2];
+    signal input keySeedEncryptionEphemeralKey;
+    signal input keySeedEncryptionPublicKey[2];
+    signal input dataEncryptionKeySeed;
+    signal input encryptedDataEncryptionKeySeed[3];
+    signal input encryptedSenderData[4];
+    signal input encryptedNoteData[nOuts][4];
 
     var MAX_BITS_VALUE = 224;
 
@@ -116,8 +114,7 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     component inMerkleProof[nIns];
     for (var i = 0; i < nIns; i++) {
         inMerkleProof[i] = MerkleProof(cmTreeDepth);
-        //@todo check if this is sufficient
-        inMerkleProof[i].enabled <== inAssetIds[i] + inValues[i];
+        inMerkleProof[i].enabled <== (inAssetIds[i] + inValues[i]) + (inAssetIds[i] * inValues[i]);
         inMerkleProof[i].root <== commitmentTreeRoot;
         inMerkleProof[i].leaf <== inCommitmentHasher[i].out;
         inMerkleProof[i].pathIndices <== inPathIndices[i];
@@ -225,15 +222,17 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
 
     // Compliance encryption checks
     component complianceProof = ComplianceProof(nOuts);
-    complianceProof.ephemeralKey <== ephemeralKey;
-    complianceProof.keyEncryptionPublicKey <== keyEncryptionPublicKey;
-    complianceProof.dataEncryptionPrivateKey <== dataEncryptionPrivateKey;
-    complianceProof.plainData[0] <== inRootAddress.out;
-    complianceProof.plainData[1] <== refundAddressBlinding;
+    complianceProof.keySeedEncryptionEphemeralKey <== keySeedEncryptionEphemeralKey;
+    complianceProof.keySeedEncryptionPublicKey <== keySeedEncryptionPublicKey;
+    complianceProof.dataEncryptionKeySeed <== dataEncryptionKeySeed;
+    complianceProof.senderData[0] <== inRootAddress.out;
+    complianceProof.senderData[1] <== refundAddressBlinding;
     for (var i = 0; i < nOuts; i++) {
-        complianceProof.plainData[2 + 3*i] <== assetEncoder[i].out;
-        complianceProof.plainData[3 + 3*i] <== outRootAddresses[i];
-        complianceProof.plainData[4 + 3*i] <== outBlindings[i];
+        complianceProof.noteData[i][0] <== assetEncoder[i].out;
+        complianceProof.noteData[i][1] <== outRootAddresses[i];
+        complianceProof.noteData[i][2] <== outBlindings[i];
     }
-    complianceProof.encryptedData <== encryptedData;
+    complianceProof.encryptedDataEncryptionKeySeed <== encryptedDataEncryptionKeySeed;
+    complianceProof.encryptedSenderData <== encryptedSenderData;
+    complianceProof.encryptedNoteData <== encryptedNoteData;
 }
