@@ -24,13 +24,13 @@ template DecryptNote() {
     out <== poseidonDecrypt.decrypted;
 }
 
-template DecryptSenderData() {
+template DecryptRefundData() {
     // rootAddress and blinding
     var plainDataLen = 2;
 
     signal input key[2];
     // Poseidon cipher produces 4 element ciphertext for 2 element plaintext
-    signal input encryptedSenderData[plainDataLen + 2];
+    signal input encryptedRefundData[plainDataLen + 2];
 
     // Output is multiple of 3
     signal output out[plainDataLen + 1];
@@ -38,7 +38,7 @@ template DecryptSenderData() {
     component poseidonDecrypt = PoseidonDecrypt(plainDataLen);
     poseidonDecrypt.nonce <== 0;
     poseidonDecrypt.key <== key;
-    poseidonDecrypt.ciphertext <== encryptedSenderData;
+    poseidonDecrypt.ciphertext <== encryptedRefundData;
 
     out <== poseidonDecrypt.decrypted;
 }
@@ -75,11 +75,11 @@ template ComplianceProof(n) {
     signal input keySeedEncryptionEphemeralKey;
     signal input keySeedEncryptionPublicKey[2];
     signal input dataEncryptionKeySeed;
-    signal input senderData[2];
+    signal input refundData[2];
     signal input noteData[n][3];
 
     signal input encryptedDataEncryptionKeySeed[3];
-    signal input encryptedSenderData[4];
+    signal input encryptedRefundData[4];
     signal input encryptedNoteData[n][4];
 
     // Check encryption of key used for data encryption
@@ -94,11 +94,11 @@ template ComplianceProof(n) {
     component dataEncryptionKeys = DeriveKeys(n + 1);
     dataEncryptionKeys.seed <== dataEncryptionKeySeed;
 
-    component senderDataDecryption = DecryptSenderData();
-    senderDataDecryption.key <== dataEncryptionKeys.out[0];
-    senderDataDecryption.encryptedSenderData <== encryptedSenderData;
-    senderData[0] === senderDataDecryption.out[0];
-    senderData[1] === senderDataDecryption.out[1];    
+    component refundDataDecryption = DecryptRefundData();
+    refundDataDecryption.key <== dataEncryptionKeys.out[0];
+    refundDataDecryption.encryptedRefundData <== encryptedRefundData;
+    refundData[0] === refundDataDecryption.out[0];
+    refundData[1] === refundDataDecryption.out[1];    
 
     component noteDecryptions[n];
     for (var i = 0; i < n; i++) {

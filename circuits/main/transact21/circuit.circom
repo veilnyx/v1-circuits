@@ -15,6 +15,6 @@ component main { public [
     refundAddress,                          // len: 1
     keySeedEncryptionPublicKey,             // len: 2
     encryptedDataEncryptionKeySeed,         // len: 3
-    encryptedSenderData,                    // len: 4
+    encryptedRefundData,                    // len: 4
     encryptedNoteData                       // len: nOuts * 4
 ]} = Transact(20, 25, 2, 1);                // total: 16 + 7 * nOuts + nIns

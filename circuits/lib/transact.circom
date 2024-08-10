@@ -55,7 +55,7 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     signal input keySeedEncryptionPublicKey[2];
     signal input dataEncryptionKeySeed;
     signal input encryptedDataEncryptionKeySeed[3];
-    signal input encryptedSenderData[4];
+    signal input encryptedRefundData[4];
     signal input encryptedNoteData[nOuts][4];
 
     var MAX_BITS_VALUE = 224;
@@ -225,14 +225,14 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     complianceProof.keySeedEncryptionEphemeralKey <== keySeedEncryptionEphemeralKey;
     complianceProof.keySeedEncryptionPublicKey <== keySeedEncryptionPublicKey;
     complianceProof.dataEncryptionKeySeed <== dataEncryptionKeySeed;
-    complianceProof.senderData[0] <== inRootAddress.out;
-    complianceProof.senderData[1] <== refundAddressBlinding;
+    complianceProof.refundData[0] <== inRootAddress.out;
+    complianceProof.refundData[1] <== refundAddressBlinding;
     for (var i = 0; i < nOuts; i++) {
         complianceProof.noteData[i][0] <== assetEncoder[i].out;
         complianceProof.noteData[i][1] <== outRootAddresses[i];
         complianceProof.noteData[i][2] <== outBlindings[i];
     }
     complianceProof.encryptedDataEncryptionKeySeed <== encryptedDataEncryptionKeySeed;
-    complianceProof.encryptedSenderData <== encryptedSenderData;
+    complianceProof.encryptedRefundData <== encryptedRefundData;
     complianceProof.encryptedNoteData <== encryptedNoteData;
 }

@@ -39,9 +39,9 @@ describe('complianceProof', function () {
     const dataEncryptionPrivateKeys = deriveKeys(dataEncryptionKeySeed, n + 1);
     const dataEncryptionPublicKeys = dataEncryptionPrivateKeys.map((k) => Point.generate(k));
 
-    const senderData = [senderAcc.rootAddress, refundAddressBlinding];
+    const refundData = [senderAcc.rootAddress, refundAddressBlinding];
     const noteData = notes.map((n, i) => [assets[i], n.rootAddress, n.blinding]);
-    const [encryptedSenderData, ...encryptedNoteData] = [senderData, ...noteData].map((d, i) => {
+    const [encryptedRefundData, ...encryptedNoteData] = [refundData, ...noteData].map((d, i) => {
       return poseidonEncrypt(d, dataEncryptionPublicKeys[i], BigInt(0));
     });
 
@@ -55,10 +55,10 @@ describe('complianceProof', function () {
       keySeedEncryptionEphemeralKey,
       keySeedEncryptionPublicKey: keySeedEncryptionPublicKey.toArray(),
       dataEncryptionKeySeed,
-      senderData,
+      refundData,
       noteData,
       encryptedDataEncryptionKeySeed,
-      encryptedSenderData,
+      encryptedRefundData,
       encryptedNoteData,
     };
 
