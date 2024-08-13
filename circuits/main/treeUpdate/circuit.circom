@@ -6,7 +6,7 @@ component main { public [
     leafIndex,
     leaves,
     lastRoot,
-    lastSubtree,
+    lastSubtrees,
     newRoot,
-    newSubtree
-]} = treeUpdate(25, 10);
+    newSubtrees
+]} = TreeUpdate(25, 10);
