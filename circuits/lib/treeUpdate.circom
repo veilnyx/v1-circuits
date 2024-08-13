@@ -4,13 +4,13 @@ include "../../node_modules/circomlib/circuits/bitify.circom";
 include "../../node_modules/circomlib/circuits/poseidon.circom";
 include "../../node_modules/circomlib/circuits/switcher.circom";
 
-template SubtreeUpdate(nLevels, nLeaves) {
+template TreeUpdate(nLevels, nLeaves) {
     signal input leafIndex;
     signal input leaves[nLeaves];
     signal input lastRoot;
-    signal input lastSubtree[nLevels];
+    signal input lastSubtrees[nLevels];
     signal input newRoot;
-    signal input newSubtree[nLevels];
+    signal input newSubtrees[nLevels];
 
     assert(nLeaves % 2 == 0);
     assert(leafIndex % 2 == 0);
@@ -21,7 +21,7 @@ template SubtreeUpdate(nLevels, nLeaves) {
     intermediaryRoots[0] <== lastRoot;
     
     signal intermediarySubtrees[nPairs + 1][nLevels];
-    intermediarySubtrees[0] <== lastSubtree;
+    intermediarySubtrees[0] <== lastSubtrees;
 
     component treeInsertions[nLeaves];
     for (var i = 0; i < nPairs; i++) {
@@ -30,23 +30,23 @@ template SubtreeUpdate(nLevels, nLeaves) {
         treeInsertions[i].leaves[0] <== leaves[2*i];
         treeInsertions[i].leaves[1] <== leaves[2*i + 1];
         treeInsertions[i].lastRoot <== intermediaryRoots[i];
-        treeInsertions[i].lastSubtree <== intermediarySubtrees[i];
+        treeInsertions[i].lastSubtrees <== intermediarySubtrees[i];
 
         intermediaryRoots[i + 1] <== treeInsertions[i].newRoot;
-        intermediarySubtrees[i + 1] <== treeInsertions[i].newSubtree;
+        intermediarySubtrees[i + 1] <== treeInsertions[i].newSubtrees;
     }
 
     newRoot === intermediaryRoots[nPairs];
-    newSubtree === intermediarySubtrees[nPairs];
+    newSubtrees === intermediarySubtrees[nPairs];
 }
 
 template InsertLeavesPair(nLevels) {
     signal input leafIndex;
     signal input leaves[2];
     signal input lastRoot;
-    signal input lastSubtree[nLevels];
+    signal input lastSubtrees[nLevels];
     signal output newRoot;
-    signal output newSubtree[nLevels];
+    signal output newSubtrees[nLevels];
 
     assert(leafIndex % 2 == 0);
 
@@ -99,13 +99,13 @@ template InsertLeavesPair(nLevels) {
     hasher[0].inputs[0] <== leaves[0];
     hasher[0].inputs[1] <== leaves[1];
     currentLevelHash[0] <== hasher[0].out;
-    newSubtree[0] <== lastSubtree[0];
+    newSubtrees[0] <== lastSubtrees[0];
 
     for (var i = 1; i < nLevels; i++) {
         // Determine the left node at level i 
         lSwitcher[i] = Switcher();
         lSwitcher[i].L <== currentLevelHash[i - 1];
-        lSwitcher[i].R <== lastSubtree[i];
+        lSwitcher[i].R <== lastSubtrees[i];
         lSwitcher[i].sel <== indexBits.out[i];
 
         // Determine the right node at level i
@@ -115,7 +115,7 @@ template InsertLeavesPair(nLevels) {
         rSwitcher[i].sel <== indexBits.out[i];
 
         // Update the subtree at level i
-        newSubtree[i] <== lSwitcher[i].outL;
+        newSubtrees[i] <== lSwitcher[i].outL;
 
         // Hash the left and right nodes at level i
         hasher[i] = Poseidon(2);

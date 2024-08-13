@@ -11,19 +11,19 @@ const getTree = () => getMerkleTree(treeDepth, [], zeroLeaf);
 
 const getInitialTreeState = () => {
   let z = zeroLeaf;
-  const lastSubtree: bigint[] = [];
+  const lastSubtrees: bigint[] = [];
   const zeros: bigint[] = [];
   for (let i = 0; i < treeDepth; i++) {
     zeros.push(z);
-    lastSubtree.push(z);
+    lastSubtrees.push(z);
     z = poseidonHash([z, z]);
   }
   const root = z;
 
-  return { lastSubtree, zeros, root };
+  return { lastSubtrees, zeros, root };
 };
 
-const getLastSubtree = (tree: MerkleTree) => {
+const getLastSubtrees = (tree: MerkleTree) => {
   const zeros = getInitialTreeState().zeros;
   const nLevels = tree.levels;
   const subtree: any[] = [];
@@ -50,14 +50,14 @@ const getLastSubtree = (tree: MerkleTree) => {
 
 const randomLeaf = () => toPaddedHex(randomBigInt(31));
 
-describe('subtreeUpdate', function () {
+describe('treeUpdate', function () {
   this.timeout(20000);
   let insertLeavesPairCircuit;
   let updateTreeCircuit;
 
   before(async function () {
     insertLeavesPairCircuit = await getCircuit('insertLeavesPair');
-    updateTreeCircuit = await getCircuit('subtreeUpdate');
+    updateTreeCircuit = await getCircuit('treeUpdate');
   });
 
   it('should correctly insert leaf pairs', async function () {
@@ -65,28 +65,28 @@ describe('subtreeUpdate', function () {
     const initialLeaves = Array.from({ length: 10 }).map(() => randomLeaf());
     tree.bulkInsert(initialLeaves);
 
-    const lastSubtree = getLastSubtree(tree);
+    const lastSubtrees = getLastSubtrees(tree);
     const lastRoot = BigInt(tree.root.toString());
 
     const leafIndex = tree.elements.length;
     const leaves = [randomLeaf(), randomLeaf()];
     tree.bulkInsert(leaves);
 
-    const newSubtree = getLastSubtree(tree);
+    const newSubtrees = getLastSubtrees(tree);
     const newRoot = BigInt(tree.root.toString());
 
     const inputs = {
       leaves,
       leafIndex,
       lastRoot,
-      lastSubtree,
+      lastSubtrees,
     };
 
     const witness = await insertLeavesPairCircuit.calculateWitness(inputs);
 
     expect(witness[1]).to.equal(newRoot);
-    for (let i = 0; i < newSubtree.length; i++) {
-      expect(witness[2 + i]).to.equal(newSubtree[i]);
+    for (let i = 0; i < newSubtrees.length; i++) {
+      expect(witness[2 + i]).to.equal(newSubtrees[i]);
     }
   });
 
@@ -96,22 +96,22 @@ describe('subtreeUpdate', function () {
     tree.bulkInsert(initLeaves);
 
     const leafIndex = tree.elements.length;
-    const lastSubtree = getLastSubtree(tree);
+    const lastSubtrees = getLastSubtrees(tree);
     const lastRoot = BigInt(tree.root.toString());
 
     const leaves = Array.from({ length: 20 }).map(() => randomLeaf());
     tree.bulkInsert(leaves);
 
-    const newSubtree = getLastSubtree(tree);
+    const newSubtrees = getLastSubtrees(tree);
     const newRoot = BigInt(tree.root.toString());
 
     const inputs = {
       leaves,
       leafIndex,
       lastRoot,
-      lastSubtree,
+      lastSubtrees,
       newRoot,
-      newSubtree,
+      newSubtrees,
     };
 
     await assert.isFulfilled(updateTreeCircuit.calculateWitness(inputs, true));

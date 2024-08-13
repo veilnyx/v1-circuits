@@ -1,6 +1,6 @@
 pragma circom 2.1.5;
 
-include "../../lib/subtreeUpdate.circom";
+include "../../lib/treeUpdate.circom";
 
 component main { public [ 
     leafIndex,
@@ -9,4 +9,4 @@ component main { public [
     lastSubtree,
     newRoot,
     newSubtree
-]} = SubtreeUpdate(25, 10);
+]} = treeUpdate(25, 10);
