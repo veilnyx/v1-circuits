@@ -40,11 +40,11 @@ template TreeUpdate(nLevels, nLeaves) {
     }
 
     newRoot === intermediaryRoots[nLeaves];
-    
-    signal zeroLeafStart <== nLeaves - nZeroLeaves;
+
 
     // Selectors to select root and subtree values at a point when last non-zero
     // leaf was inserted
+    signal zeroLeafStart <== nLeaves - nZeroLeaves;
     component selectors[nLeaves + 1];
     for (var i = 0; i < nLeaves + 1; i++) {
         selectors[i] = IsZero();
