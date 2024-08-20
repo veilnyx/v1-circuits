@@ -5,6 +5,7 @@ import { toBigInt } from '@zkfi-tech/utils';
 
 export * from './circuit';
 export * from './note';
+export * from './tree';
 
 export const MSG_ASSERT_FAILED = 'Assert Failed';
 

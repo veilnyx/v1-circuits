@@ -8,5 +8,6 @@ component main { public [
     lastRoot,
     lastSubtrees,
     newRoot,
-    newSubtrees
+    newSubtrees,
+    nZeroLeaves
 ]} = TreeUpdate(25, 10);

@@ -3,6 +3,7 @@ pragma circom 2.1.5;
 include "../../node_modules/circomlib/circuits/bitify.circom";
 include "../../node_modules/circomlib/circuits/poseidon.circom";
 include "../../node_modules/circomlib/circuits/switcher.circom";
+include "./utils.circom";
 
 template TreeUpdate(nLevels, nLeaves) {
     signal input leafIndex;
@@ -10,25 +11,27 @@ template TreeUpdate(nLevels, nLeaves) {
     signal input lastRoot;
     signal input lastSubtrees[nLevels];
     signal input newRoot;
+
+    // Subtrees state up to which non-zero leafs were inserted
+    // If `leaves` is padded with zero leafs, the insertion of these zero-leafs
+    // does not affect whole merkle tree state i.e. root remains same. But the subtree 
+    // elements are updated.
     signal input newSubtrees[nLevels];
 
-    assert(nLeaves % 2 == 0);
-    assert(leafIndex % 2 == 0);
+    // Number of zero leaves used to pad to batch size (nLeaves)
+    signal input nZeroLeaves;
 
-    var nPairs = nLeaves / 2;
-
-    signal intermediaryRoots[nPairs + 1];
+    signal intermediaryRoots[nLeaves + 1];
     intermediaryRoots[0] <== lastRoot;
     
-    signal intermediarySubtrees[nPairs + 1][nLevels];
+    signal intermediarySubtrees[nLeaves + 1][nLevels];
     intermediarySubtrees[0] <== lastSubtrees;
 
     component treeInsertions[nLeaves];
-    for (var i = 0; i < nPairs; i++) {
-        treeInsertions[i] = InsertLeavesPair(nLevels);
-        treeInsertions[i].leafIndex <== leafIndex + (2*i);
-        treeInsertions[i].leaves[0] <== leaves[2*i];
-        treeInsertions[i].leaves[1] <== leaves[2*i + 1];
+    for (var i = 0; i < nLeaves; i++) {
+        treeInsertions[i] = InsertLeaf(nLevels);
+        treeInsertions[i].leafIndex <== leafIndex + i;
+        treeInsertions[i].leaf <== leaves[i];
         treeInsertions[i].lastRoot <== intermediaryRoots[i];
         treeInsertions[i].lastSubtrees <== intermediarySubtrees[i];
 
@@ -36,19 +39,45 @@ template TreeUpdate(nLevels, nLeaves) {
         intermediarySubtrees[i + 1] <== treeInsertions[i].newSubtrees;
     }
 
-    newRoot === intermediaryRoots[nPairs];
-    newSubtrees === intermediarySubtrees[nPairs];
+    newRoot === intermediaryRoots[nLeaves];
+    
+    signal zeroLeafStart <== nLeaves - nZeroLeaves;
+
+    // Selectors to select root and subtree values at a point when last non-zero
+    // leaf was inserted
+    component selectors[nLeaves + 1];
+    for (var i = 0; i < nLeaves + 1; i++) {
+        selectors[i] = IsZero();
+        selectors[i].in <== i - zeroLeafStart;
+    }
+
+    // Selects the root at which last non-zero leaf was inserted. Since whole full tree
+    // state remains same, it is same as before
+    component sumRoots = Sum(nLeaves + 1);
+    for (var i = 0; i < nLeaves + 1; i++) {
+        sumRoots.in[i] <== selectors[i].out * intermediaryRoots[i];
+    }
+    sumRoots.out === newRoot;
+
+    // Selects the subtree values at which last non-zero leaf was inserted
+    component sumSubtreeVal[nLevels]; 
+    for (var i = 0; i < nLevels; i++) {
+        sumSubtreeVal[i] = Sum(nLeaves + 1);
+        for (var j = 0; j < nLeaves + 1; j++) {
+            sumSubtreeVal[i].in[j] <== selectors[j].out * intermediarySubtrees[j][i];
+        }
+
+        newSubtrees[i] === sumSubtreeVal[i].out;
+    }
 }
 
-template InsertLeavesPair(nLevels) {
+template InsertLeaf(nLevels) {
     signal input leafIndex;
-    signal input leaves[2];
+    signal input leaf;
     signal input lastRoot;
     signal input lastSubtrees[nLevels];
     signal output newRoot;
     signal output newSubtrees[nLevels];
-
-    assert(leafIndex % 2 == 0);
 
     // Zeros generate from zero leaf: keccak256("zero")
     var ZEROES[32] = [
@@ -93,25 +122,20 @@ template InsertLeavesPair(nLevels) {
     component lSwitcher[nLevels];
     component rSwitcher[nLevels];
 
-    signal currentLevelHash[nLevels];
+    signal currentLevelHash[nLevels + 1];
+    currentLevelHash[0] <== leaf;
 
-    hasher[0] = Poseidon(2);
-    hasher[0].inputs[0] <== leaves[0];
-    hasher[0].inputs[1] <== leaves[1];
-    currentLevelHash[0] <== hasher[0].out;
-    newSubtrees[0] <== lastSubtrees[0];
-
-    for (var i = 1; i < nLevels; i++) {
+    for (var i = 0; i < nLevels; i++) {
         // Determine the left node at level i 
         lSwitcher[i] = Switcher();
-        lSwitcher[i].L <== currentLevelHash[i - 1];
+        lSwitcher[i].L <== currentLevelHash[i];
         lSwitcher[i].R <== lastSubtrees[i];
         lSwitcher[i].sel <== indexBits.out[i];
 
         // Determine the right node at level i
         rSwitcher[i] = Switcher();
         rSwitcher[i].L <== ZEROES[i];
-        rSwitcher[i].R <== currentLevelHash[i - 1];
+        rSwitcher[i].R <== currentLevelHash[i];
         rSwitcher[i].sel <== indexBits.out[i];
 
         // Update the subtree at level i
@@ -121,9 +145,9 @@ template InsertLeavesPair(nLevels) {
         hasher[i] = Poseidon(2);
         hasher[i].inputs[0] <== lSwitcher[i].outL;
         hasher[i].inputs[1] <== rSwitcher[i].outL;
-        currentLevelHash[i] <== hasher[i].out;
+        currentLevelHash[i + 1] <== hasher[i].out;
     }
 
-    newRoot <== currentLevelHash[nLevels - 1];
+    newRoot <== currentLevelHash[nLevels];
 }
 
