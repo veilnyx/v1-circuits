@@ -7,9 +7,9 @@ include "./ecc.circom";
 
 template Register() {
     signal input rootAddress;
-    signal input viewPrivateKey;
-    signal input viewPublicKey[2];
     signal input signPublicKey[2];
+    signal input viewPublicKey[2];
+    signal input viewPrivateKey;
 
     // Caclulate viewPublicKey and constrain it
     component vkMulG = PrivateKeyToPublicKey();

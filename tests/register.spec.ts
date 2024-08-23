@@ -10,9 +10,9 @@ describe('register', function () {
 
     const inputs = {
       rootAddress: acc.rootAddress,
-      viewPrivateKey: acc.viewer.privateKey,
-      viewPublicKey: acc.viewer.publicKey.toArray(),
       signPublicKey: acc.signer.publicKey.toArray(),
+      viewPublicKey: acc.viewer.publicKey.toArray(),
+      viewPrivateKey: acc.viewer.privateKey,
     };
 
     assert.isFulfilled(circuit.calculateWitness(inputs, true));
@@ -26,9 +26,9 @@ describe('register', function () {
 
     const inputs = {
       rootAddress: acc.rootAddress,
-      viewPrivateKey: acc.viewer.privateKey,
-      viewPublicKey: Point.generate(randomBigInt(31)).toArray(),
       signPublicKey: acc.signer.publicKey.toArray(),
+      viewPublicKey: Point.generate(randomBigInt(31)).toArray(),
+      viewPrivateKey: acc.viewer.privateKey,
     };
 
     assert.isRejected(circuit.calculateWitness(inputs, true), MSG_ASSERT_FAILED);
