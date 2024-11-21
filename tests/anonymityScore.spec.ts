@@ -1,45 +1,24 @@
-import { Point, poseidonHash } from '@zkfi-tech/babyjubjub';
-import { createNote, getCircuit, randomAccount, randomHex } from './helpers';
+import { Point } from '@zkfi-tech/babyjubjub';
 import { randomBigInt } from '@zkfi-tech/utils';
-import { parseEther } from 'viem';
-import MerkleTree from 'fixed-merkle-tree';
+import { createNote, getCircuit, getMerkleTree, randomAccount } from './helpers';
 
-const eth = (n: number) => parseEther(`${n}`);
 const cmTreeDepth = 25;
-// const addrTreeDepth = 20;
-const getCmTree = () =>
-  new MerkleTree(cmTreeDepth, [], { hashFunction: (a, b) => poseidonHash([a, b]) });
-// const getAddrTree = () =>
-//   new MerkleTree(addrTreeDepth, [], { hashFunction: (a, b) => poseidonHash([a, b]) });
+const getCmTree = () => getMerkleTree(cmTreeDepth);
 
 describe('anonymityScore', function () {
   this.timeout(8000);
 
   let circuit;
-  let sender;
-  let receiver;
-  let senderPubKey;
-  let receiverPubKey;
-  let revokerPublicKey;
-  let encPublicKey;
-
   let ft1 = 0x010001;
+  const sender = randomAccount();
+  const revokerPublicKey = Point.generate(randomBigInt(31));
 
   before(async function () {
     circuit = await getCircuit('transact22');
-    sender = randomAccount();
-    receiver = randomAccount();
-    senderPubKey = sender.signer.publicKey.toArray();
-    receiverPubKey = receiver.signer.publicKey.toArray();
-    revokerPublicKey = Point.generate(randomBigInt(31));
-    encPublicKey = Point.generate(randomBigInt(31));
   });
 
   it('correctly calculate anonymity score', async function () {
     const circuit = await getCircuit('anonymityScore');
-    const signPublicKey = [randomHex(31), randomHex(31)];
-    const viewPrivateKey = randomHex(31);
-    const address = poseidonHash([signPublicKey[0], signPublicKey[1], viewPrivateKey]);
     const cmTree = getCmTree();
 
     const assetId = ft1;
@@ -77,7 +56,5 @@ describe('anonymityScore', function () {
     };
 
     const witness = await circuit.calculateWitness(inputs, true);
-    // expectEqFe(witness[1], address);
-    // await circuit.checkConstraints(witness);
   });
 });

@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { randomHex } from '@zkfi-tech/utils';
+import { randomBigInt } from '@zkfi-tech/utils';
 import { poseidonHash } from '@zkfi-tech/babyjubjub';
 import { MSG_ASSERT_FAILED, getCircuit, randomAccount } from './helpers';
 
@@ -12,7 +12,7 @@ describe('ownershipProof', function () {
   });
 
   it('should verify successfully for correct signature', async function () {
-    const hash = poseidonHash(randomHex(32));
+    const hash = poseidonHash([randomBigInt(31)]);
     const account = randomAccount();
     const sign = account.sign(hash);
 
@@ -29,7 +29,7 @@ describe('ownershipProof', function () {
   });
 
   it('should fail verification for incorrect signatures', async function () {
-    const hash = poseidonHash(randomHex(32));
+    const hash = poseidonHash([randomBigInt(31)]);
     const account = randomAccount();
     const badAccount = randomAccount();
     const badSign = badAccount.sign(hash);
@@ -44,8 +44,8 @@ describe('ownershipProof', function () {
   });
 
   it('should fail verification for incorrect message or public key', async function () {
-    const hash = poseidonHash(randomHex(32));
-    const badHash = poseidonHash(randomHex(32));
+    const hash = poseidonHash([randomBigInt(31)]);
+    const badHash = poseidonHash([randomBigInt(31)]);
     const account = randomAccount();
     const sign = account.sign(hash);
     const badAccount = randomAccount();

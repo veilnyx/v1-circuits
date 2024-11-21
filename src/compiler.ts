@@ -2,7 +2,7 @@ import { existsSync, promises as fsPromises } from 'fs';
 import shell from 'shelljs';
 
 class Compiler {
-  compile({ src, outDir }: { src: string; outDir: string }) {
+  async compile({ src, outDir }: { src: string; outDir: string }) {
     if (!existsSync(src)) {
       throw new Error(`File ${src} does not exist`);
     }
@@ -24,7 +24,7 @@ class Compiler {
     return new Circuit({ name, artifactsDir: outDir });
   }
 
-  generateKeys({ r1cs, pTauPath, out }: { r1cs: string; pTauPath: string; out: string }) {
+  async generateKeys({ r1cs, pTauPath, out }: { r1cs: string; pTauPath: string; out: string }) {
     const outDir = out.split('/').slice(0, -1).join('/');
     shell.exec(`snarkjs groth16 setup ${r1cs} ${pTauPath} ${outDir}/tmp_keys.zkey`);
     shell.exec(`echo "test" | snarkjs zkey contribute ${outDir}/tmp_keys.zkey ${outDir}/keys.zkey`);

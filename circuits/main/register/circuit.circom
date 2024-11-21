@@ -4,6 +4,6 @@ include "../../lib/register.circom";
 
 component main { public [ 
     rootAddress,
-    viewPublicKey,
-    signPublicKey
+    signPublicKey,
+    viewPublicKey
 ]} = Register();

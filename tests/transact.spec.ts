@@ -1,40 +1,40 @@
 import { assert } from 'chai';
-import { parseEther, slice } from 'viem';
-import { MerkleTree } from 'fixed-merkle-tree';
-import { Point, elGamal, poseidonHash } from '@zkfi-tech/babyjubjub';
-import { randomBigInt, randomHex } from '@zkfi-tech/utils';
-import { NoteData, createNote, getCircuit, randomAccount } from './helpers';
+import { parseEther } from 'viem';
+import { poseidonEncrypt } from '@zkfi-tech/babyjubjub';
+import { Point, elGamal } from '@zkfi-tech/babyjubjub';
+import { randomBigInt } from '@zkfi-tech/utils';
+import {
+  NoteData,
+  createNote,
+  deriveKeys,
+  getCircuit,
+  getMerkleTree,
+  randomAccount,
+  toPaddedHex,
+} from './helpers';
 import { encodeAsset } from './helpers/asset';
 
 const eth = (n: number) => parseEther(`${n}`);
+
 const cmTreeDepth = 32;
 const addrTreeDepth = 20;
-const getCmTree = () =>
-  new MerkleTree(cmTreeDepth, [], { hashFunction: (a, b) => poseidonHash([a, b]) });
-const getAddrTree = () =>
-  new MerkleTree(addrTreeDepth, [], { hashFunction: (a, b) => poseidonHash([a, b]) });
+const getCmTree = () => getMerkleTree(cmTreeDepth);
+const getAddrTree = () => getMerkleTree(addrTreeDepth);
 
 describe('transact', function () {
   this.timeout(8000);
 
   let circuit;
-  let sender;
-  let receiver;
-  let senderPubKey;
-  let receiverPubKey;
-  let revokerPublicKey;
-  let encryptionPublicKey;
+  const sender = randomAccount();
+  const receiver = randomAccount();
+  const revokerPublicKey = Point.generate(randomBigInt(31));
+  const keySeedEncryptionPublicKey = Point.generate(randomBigInt(31));
+  const dataEncryptionKeySeed = randomBigInt(31);
 
   let ft1 = 0x010001;
 
   before(async function () {
     circuit = await getCircuit('transact22');
-    sender = randomAccount();
-    receiver = randomAccount();
-    senderPubKey = sender.signer.publicKey.toArray();
-    receiverPubKey = receiver.signer.publicKey.toArray();
-    revokerPublicKey = Point.generate(randomBigInt(31));
-    encryptionPublicKey = Point.generate(randomBigInt(31));
   });
 
   const createTx = ({
@@ -51,42 +51,29 @@ describe('transact', function () {
     const commitmentsTree = getCmTree();
     const addressTree = getAddrTree();
     commitmentsTree.bulkInsert(inNotes.map((n: any) => n.commitment));
-    addressTree.insert(sender.rootAddress);
-    const hash = randomHex(31);
+    addressTree.insert(toPaddedHex(sender.rootAddress));
+    const hash = randomBigInt(31);
     const sign = sender.sign(hash);
 
     const refundAddressBlinding = randomBigInt(31);
     const refundAddress = sender.getBlindedAddress(revokerPublicKey, refundAddressBlinding);
 
-    const ephemeralKey = randomBigInt(31);
-    const ephemeralPublicKey = Point.generate(ephemeralKey);
-
-    const encryptedInRootAddress = BigInt(
-      slice(elGamal.encrypt(sender.rootAddress, encryptionPublicKey, ephemeralKey), 32, 64),
+    const keySeedEncryptionEphemeralKey = randomBigInt(31);
+    const ephemeralPublicKey = Point.generate(keySeedEncryptionEphemeralKey);
+    const encryptedDataEncryptionKeySeed = elGamal.encrypt(
+      dataEncryptionKeySeed,
+      keySeedEncryptionPublicKey,
+      keySeedEncryptionEphemeralKey,
     );
-    const encryptedRefundAddressBlinding =
-      BigInt(refundAddress) === 0n
-        ? 0
-        : BigInt(
-            slice(
-              elGamal.encrypt(refundAddressBlinding, encryptionPublicKey, ephemeralKey),
-              32,
-              64,
-            ),
-          );
 
-    const assets = outNotes.map((note: any) => encodeAsset(note.assetId, note.value));
-    const encryptedOutAssets = assets.map((a) => {
-      const ciphertext = elGamal.encrypt(a, encryptionPublicKey, ephemeralKey);
-      return BigInt(slice(ciphertext, 32, 64));
-    });
-    const encryptedOutBlindings = outNotes.map((n) => {
-      const ciphertext = elGamal.encrypt(n.blinding, encryptionPublicKey, ephemeralKey);
-      return BigInt(slice(ciphertext, 32, 64));
-    });
-    const encryptedOutRootAddresses = outNotes.map((n) => {
-      const ciphertext = elGamal.encrypt(n.rootAddress, encryptionPublicKey, ephemeralKey);
-      return BigInt(slice(ciphertext, 32, 64));
+    const numNotes = outNotes.length;
+    const dataEncryptionPrivateKeys = deriveKeys(dataEncryptionKeySeed, numNotes + 1);
+    const dataEncryptionPublicKeys = dataEncryptionPrivateKeys.map((k) => Point.generate(k));
+    const assets = outNotes.map((n) => encodeAsset(n.assetId, n.value));
+    const refundData = [sender.rootAddress, refundAddressBlinding];
+    const noteData = outNotes.map((n, i) => [assets[i], n.rootAddress, n.blinding]);
+    const [encryptedRefundData, ...encryptedNoteData] = [refundData, ...noteData].map((d, i) => {
+      return poseidonEncrypt(d, dataEncryptionPublicKeys[i], BigInt(0));
     });
 
     const inputs = {
@@ -95,9 +82,9 @@ describe('transact', function () {
       signature: [sign.s, sign.e],
       // address reg
       addressTreeRoot: addressTree.root.toString(),
-      addressPathIndex: addressTree.indexOf(sender.rootAddress),
+      addressPathIndex: addressTree.indexOf(toPaddedHex(sender.rootAddress)),
       addressPathElements: addressTree
-        .path(addressTree.indexOf(sender.rootAddress))
+        .path(addressTree.indexOf(toPaddedHex(sender.rootAddress)))
         .pathElements.map((x) => BigInt(x)),
       // public
       pubFlow,
@@ -124,15 +111,14 @@ describe('transact', function () {
       refundAddress,
       refundAddressBlinding,
       // encryptions
-      ephemeralKey,
-      ephemeralPublicKey: ephemeralPublicKey.toArray(),
-      encryptionPublicKey: encryptionPublicKey.toArray(),
-      encryptedInRootAddress,
-      encryptedRefundAddressBlinding,
-      encryptedOutAssets,
-      encryptedOutBlindings,
-      encryptedOutRootAddresses,
+      keySeedEncryptionEphemeralKey,
+      keySeedEncryptionPublicKey: keySeedEncryptionPublicKey.toArray(),
+      dataEncryptionKeySeed,
+      encryptedDataEncryptionKeySeed,
+      encryptedRefundData,
+      encryptedNoteData,
     };
+
     return inputs;
   };
 

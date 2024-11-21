@@ -1,4 +1,5 @@
-import { expectEqFe, getCircuit } from './helpers';
+import { expect } from 'chai';
+import { getCircuit } from './helpers';
 
 describe('fungibility', function () {
   let circuitFungible;
@@ -24,12 +25,12 @@ describe('fungibility', function () {
     const witness5 = await circuitFungible.calculateWitness({ assetId: t5 }, true);
     const witness6 = await circuitFungible.calculateWitness({ assetId: t6 }, true);
 
-    expectEqFe(witness1[1], 1);
-    expectEqFe(witness2[1], 1);
-    expectEqFe(witness3[1], 1);
-    expectEqFe(witness4[1], 0);
-    expectEqFe(witness5[1], 0);
-    expectEqFe(witness6[1], 0);
+    expect(witness1[1]).to.equal(1n);
+    expect(witness2[1]).to.equal(1n);
+    expect(witness3[1]).to.equal(1n);
+    expect(witness4[1]).to.equal(0n);
+    expect(witness5[1]).to.equal(0n);
+    expect(witness6[1]).to.equal(0n);
   });
 
   it('should detect non-fungible assets correctly', async function () {
@@ -40,11 +41,11 @@ describe('fungibility', function () {
     const witness5 = await circuitNonFungible.calculateWitness({ assetId: t5 }, true);
     const witness6 = await circuitNonFungible.calculateWitness({ assetId: t6 }, true);
 
-    expectEqFe(witness1[1], 0);
-    expectEqFe(witness2[1], 0);
-    expectEqFe(witness3[1], 0);
-    expectEqFe(witness4[1], 1);
-    expectEqFe(witness5[1], 1);
-    expectEqFe(witness6[1], 1);
+    expect(witness1[1]).to.equal(0n);
+    expect(witness2[1]).to.equal(0n);
+    expect(witness3[1]).to.equal(0n);
+    expect(witness4[1]).to.equal(1n);
+    expect(witness5[1]).to.equal(1n);
+    expect(witness6[1]).to.equal(1n);
   });
 });

@@ -1,5 +1,6 @@
+import { expect } from 'chai';
 import { parseEther } from 'viem';
-import { expectEqFe, getCircuit } from './helpers';
+import { getCircuit } from './helpers';
 
 const eth = (n: number) => parseEther(`${n}`);
 
@@ -21,6 +22,6 @@ describe('countAssets', function () {
 
     const inputs = { selectedAssetId, selectedAssetValue, assetIds, values };
     const witness = await circuit.calculateWitness(inputs, true);
-    expectEqFe(witness[1], actualCount);
+    expect(witness[1]).to.equal(BigInt(actualCount));
   });
 });

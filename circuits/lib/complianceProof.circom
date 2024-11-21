@@ -1,62 +1,110 @@
-pragma circom 2.1.5;
+pragma circom 2.1.6;
 
-include "./encodeAsset.circom";
+include "../../node_modules/circomlib/circuits/poseidon.circom";
+include "./ecc.circom";
+include "./utils.circom";
 include "./elGamal.circom";
+include "./encodeAsset.circom";
+include "./poseidonCipher.circom";
+
+template DecryptNote() {
+    // asset, rootAddress and blinding
+    var plainDataLen = 3;
+
+    signal input key[2];
+    // Poseidon cipher produces 4 element ciphertext for 3 element plaintext
+    signal input encryptedNote[plainDataLen + 1];
+    signal output out[plainDataLen];
+
+    component poseidonDecrypt = PoseidonDecrypt(plainDataLen);
+    poseidonDecrypt.nonce <== 0;
+    poseidonDecrypt.key <== key;
+    poseidonDecrypt.ciphertext <== encryptedNote;
+
+    out <== poseidonDecrypt.decrypted;
+}
+
+template DecryptRefundData() {
+    // rootAddress and blinding
+    var plainDataLen = 2;
+
+    signal input key[2];
+    // Poseidon cipher produces 4 element ciphertext for 2 element plaintext
+    signal input encryptedRefundData[plainDataLen + 2];
+
+    // Output is multiple of 3
+    signal output out[plainDataLen + 1];
+
+    component poseidonDecrypt = PoseidonDecrypt(plainDataLen);
+    poseidonDecrypt.nonce <== 0;
+    poseidonDecrypt.key <== key;
+    poseidonDecrypt.ciphertext <== encryptedRefundData;
+
+    out <== poseidonDecrypt.decrypted;
+}
+
+template DeriveKeys(n) {
+    signal input seed;
+    signal output out[n][2];
+
+    signal intermediateKeys[n + 1];
+    intermediateKeys[0] <== seed;
+
+    component hashers[n];
+    for (var i = 0; i < n; i++) {
+        hashers[i] = Poseidon(2);
+        hashers[i].inputs[0] <== i;
+        hashers[i].inputs[1] <== intermediateKeys[i];
+        intermediateKeys[i + 1] <== hashers[i].out;
+    }
+
+    component castToBits[n];
+    component pvtToPubKey[n];
+    for (var i = 0; i < n; i++) {
+        castToBits[i] = CastToBits(248);
+        castToBits[i].in <== intermediateKeys[i + 1];
+
+        pvtToPubKey[i] = PrivateKeyToPublicKey();
+        pvtToPubKey[i].privateKey <== castToBits[i].out;
+
+        out[i] <== pvtToPubKey[i].out;
+    }
+}
 
 template ComplianceProof(n) {
-    signal input ephemeralKey;
-    signal input ephemeralPublicKey[2];
-    signal input encryptionPublicKey[2];
+    signal input keySeedEncryptionEphemeralKey;
+    signal input keySeedEncryptionPublicKey[2];
+    signal input dataEncryptionKeySeed;
+    signal input refundData[2];
+    signal input noteData[n][3];
 
-    signal input inRootAddress;
-    signal input refundAddress;
-    signal input refundAddressBlinding;
-    signal input outAssetIds[n];
-    signal input outRootAddresses[n];
-    signal input outValues[n];
-    signal input outBlindings[n];
+    signal input encryptedDataEncryptionKeySeed[3];
+    signal input encryptedRefundData[4];
+    signal input encryptedNoteData[n][4];
 
-    signal input encryptedInRootAddress;
-    signal input encryptedRefundAddressBlinding;
-    signal input encryptedOutAssets[n];
-    signal input encryptedOutBlindings[n];
-    signal input encryptedOutRootAddresses[n];
+    // Check encryption of key used for data encryption
+    component elGamalEncrypt = ElGamalEncrypt();
+    elGamalEncrypt.ephemeralKey <== keySeedEncryptionEphemeralKey;
+    elGamalEncrypt.ephemeralPublicKey[0] <== encryptedDataEncryptionKeySeed[0];
+    elGamalEncrypt.ephemeralPublicKey[1] <== encryptedDataEncryptionKeySeed[1];
+    elGamalEncrypt.encryptionPublicKey <== keySeedEncryptionPublicKey;
+    elGamalEncrypt.m <== dataEncryptionKeySeed;
+    elGamalEncrypt.out === encryptedDataEncryptionKeySeed[2];
 
-    component assetEncoder[n];
+    component dataEncryptionKeys = DeriveKeys(n + 1);
+    dataEncryptionKeys.seed <== dataEncryptionKeySeed;
+
+    component refundDataDecryption = DecryptRefundData();
+    refundDataDecryption.key <== dataEncryptionKeys.out[0];
+    refundDataDecryption.encryptedRefundData <== encryptedRefundData;
+    refundData[0] === refundDataDecryption.out[0];
+    refundData[1] === refundDataDecryption.out[1];    
+
+    component noteDecryptions[n];
     for (var i = 0; i < n; i++) {
-        assetEncoder[i] = EncodeAsset();
-        assetEncoder[i].assetId <== outAssetIds[i];
-        assetEncoder[i].value <== outValues[i];
+        noteDecryptions[i] = DecryptNote();
+        noteDecryptions[i].key <== dataEncryptionKeys.out[i + 1];
+        noteDecryptions[i].encryptedNote <== encryptedNoteData[i];
+        noteData[i] === noteDecryptions[i].out;
     }
-
-    component encVerifier = ElGamalEncryptMulti(3*n + 2);
-    encVerifier.ephemeralKey <== ephemeralKey;
-    encVerifier.ephemeralPublicKey <== ephemeralPublicKey;
-    encVerifier.encryptionPublicKey <== encryptionPublicKey;
-
-    for (var i = 0; i < n; i++) {
-        encVerifier.enabled[i] <== 1;
-        encVerifier.m[i] <== assetEncoder[i].out;
-        encVerifier.c[i] <== encryptedOutAssets[i];
-    }
-
-    for (var i = 0; i < n; i++) {
-        encVerifier.enabled[n+i] <== 1;
-        encVerifier.m[n+i] <== outBlindings[i];
-        encVerifier.c[n+i] <== encryptedOutBlindings[i];
-    }
-
-    for (var i = 0; i < n; i++) {
-        encVerifier.enabled[2*n+i] <== 1;
-        encVerifier.m[2*n+i] <== outRootAddresses[i];
-        encVerifier.c[2*n+i] <== encryptedOutRootAddresses[i];
-    }
-
-    encVerifier.enabled[3*n] <== 1;
-    encVerifier.m[3*n] <== inRootAddress;
-    encVerifier.c[3*n] <== encryptedInRootAddress;
-
-    encVerifier.enabled[3*n + 1] <== refundAddress;
-    encVerifier.m[3*n + 1] <== refundAddressBlinding;
-    encVerifier.c[3*n + 1] <== encryptedRefundAddressBlinding;
 }

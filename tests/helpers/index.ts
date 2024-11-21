@@ -1,24 +1,52 @@
-import { assert, expect } from 'chai';
-import { BigNumber, BigNumberish, utils } from 'ethers';
-import { BytesLike } from '@zkfi-tech/shared-types';
 import { Point, schnorr, Fr, poseidonHash } from '@zkfi-tech/babyjubjub';
-import { Fr as Frc } from './circuit';
+import { bytesToBigInt, Hex, isHex, padBytes, padHex, sliceBytes, toBytes, toHex } from 'viem';
+import MerkleTree from 'fixed-merkle-tree';
+import { toBigInt } from '@zkfi-tech/utils';
 
 export * from './circuit';
 export * from './note';
+export * from './tree';
 
 export const MSG_ASSERT_FAILED = 'Assert Failed';
 
-export const randomBN = (nBytes: number) => {
-  return BigNumber.from(utils.randomBytes(nBytes));
+export const toPaddedHex = (n: bigint | string | number) => {
+  let x: Hex;
+  if (isHex(n)) {
+    x = n;
+  } else if (typeof n === 'bigint' || typeof n === 'number') {
+    x = toHex(n);
+  } else {
+    throw new Error('Invalid input');
+  }
+
+  return padHex(x, { size: 32 });
 };
 
-export const randomHex = (nBytes: number) => {
-  return randomBN(nBytes).toHexString();
+export const deriveKeys = (seed: bigint, n: number) => {
+  const hashes: bigint[] = [];
+  for (let i = 0; i < n; i++) {
+    const s = i === 0 ? seed : hashes[i - 1];
+    const hash = padBytes(toBytes(poseidonHash([BigInt(i), s])), { size: 32 });
+    hashes.push(bytesToBigInt(hash));
+  }
+
+  const keys = hashes.map((h) => bytesToBigInt(sliceBytes(toBytes(h), 1)));
+  return keys;
+};
+
+export const getMerkleTree = (depth: number, leaves: bigint[] = [], zeroLeaf?: bigint) => {
+  const hashFunction = (a, b) => {
+    const hash = poseidonHash([toBigInt(a), toBigInt(b)]);
+    return toPaddedHex(hash);
+  };
+
+  const elements = leaves.map((l) => toPaddedHex(l));
+  const zeroElement = zeroLeaf ? toPaddedHex(zeroLeaf) : undefined;
+  return new MerkleTree(depth, elements, { hashFunction, zeroElement });
 };
 
 export const randomKeyPair = () => {
-  const privateKey = Fr.random(31).toHex();
+  const privateKey = Fr.random(31).val;
   const publicKey = Point.generate(privateKey);
 
   return {
@@ -30,27 +58,21 @@ export const randomKeyPair = () => {
 export const randomAccount = () => {
   const signer = randomKeyPair();
   const viewer = randomKeyPair();
-  const rootAddress = poseidonHash([signer.publicKey.x, signer.publicKey.y, viewer.privateKey]);
+  const rootAddress = BigInt(
+    poseidonHash([signer.publicKey.x, signer.publicKey.y, viewer.privateKey]),
+  );
 
   return {
     signer,
     viewer,
     rootAddress,
-    sign(message: BytesLike) {
+    sign(message: bigint) {
       return schnorr.sign(message, signer.privateKey);
     },
     getBlindedAddress(revokerPublicKey: Point, blinding: bigint | string) {
-      return poseidonHash([this.rootAddress, revokerPublicKey.x, revokerPublicKey.y, blinding]);
+      return BigInt(
+        poseidonHash([this.rootAddress, revokerPublicKey.x, revokerPublicKey.y, blinding]),
+      );
     },
   };
 };
-
-export const isEqFe = (a: BigNumberish, b: BigNumberish) => Frc.eq(Frc.e(a), Frc.e(b));
-export const assertEqFe = (a: BigNumberish, b: BigNumberish) => assert(isEqFe(a, b));
-export const assertNeqFe = (a: BigNumberish, b: BigNumberish) => assert(!isEqFe(a, b));
-
-export const expectEqFe = (a: BigNumberish, b: BigNumberish) =>
-  expect(Frc.e(a).toString()).to.eq(Frc.e(b).toString());
-
-export const expectNeqFe = (a: BigNumberish, b: BigNumberish) =>
-  expect(Frc.e(a).toString()).to.not.eq(Frc.e(b).toString());

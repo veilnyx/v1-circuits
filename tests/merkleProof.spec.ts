@@ -1,10 +1,10 @@
 import { assert } from 'chai';
 import { poseidonHash } from '@zkfi-tech/babyjubjub';
-import { MerkleTree } from 'fixed-merkle-tree';
-import { MSG_ASSERT_FAILED, getCircuit, randomHex } from './helpers';
+import { randomBigInt } from '@zkfi-tech/utils';
+import { MSG_ASSERT_FAILED, getCircuit, getMerkleTree, toPaddedHex } from './helpers';
 
-const getTree = () => new MerkleTree(32, [], { hashFunction: (a, b) => poseidonHash([a, b]) });
-const randomLeaf = () => poseidonHash(randomHex(32));
+const getTree = () => getMerkleTree(32);
+const randomLeaf = () => toPaddedHex(poseidonHash([randomBigInt(31)]));
 
 describe('merkleProof', function () {
   this.timeout(8000);
@@ -45,7 +45,7 @@ describe('merkleProof', function () {
     tree.bulkInsert(leaves);
 
     const root = tree.root.toString();
-    const badRoot = randomHex(32);
+    const badRoot = randomBigInt(32);
     const proofElement = leaves[1];
     const idx = tree.indexOf(proofElement);
     const pathElements = tree.path(idx).pathElements;
@@ -92,7 +92,7 @@ describe('merkleProof', function () {
     tree.bulkInsert(leaves);
 
     const root = tree.root.toString();
-    const badRoot = randomHex(32);
+    const badRoot = randomBigInt(32);
     const proofElement = leaves[1];
     const badProofElement = 3;
     const idx = tree.indexOf(proofElement);

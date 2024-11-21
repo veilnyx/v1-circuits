@@ -1,14 +1,14 @@
-pragma circom 2.1.5;
+pragma circom 2.1.6;
 
+include "./utils.circom";
 include "./address.circom";
-include "./limitRange.circom";
-include "./commitment.circom";
 include "./nullifier.circom";
+include "./commitment.circom";
 include "./merkleProof.circom";
 include "./ownershipProof.circom";
+include "./complianceProof.circom";
 include "./zeroSumFungible.circom";
 include "./zeroSumNonFungible.circom";
-include "./complianceProof.circom";
 
 template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     // Recent merkle roots
@@ -47,19 +47,16 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     signal input outBlindings[nOuts];
     signal input outCommitments[nOuts];
 
-    // pubValues addresses for any deposits to shielded account
+    // blinded addresses for any public deposits to shielded account
     signal input refundAddress;
     signal input refundAddressBlinding;
 
-    // Encrypted data
-    signal input encryptionPublicKey[2];
-    signal input ephemeralKey;
-    signal input ephemeralPublicKey[2];
-    signal input encryptedInRootAddress;
-    signal input encryptedRefundAddressBlinding;
-    signal input encryptedOutAssets[nOuts];
-    signal input encryptedOutBlindings[nOuts];
-    signal input encryptedOutRootAddresses[nOuts];
+    signal input keySeedEncryptionEphemeralKey;
+    signal input keySeedEncryptionPublicKey[2];
+    signal input dataEncryptionKeySeed;
+    signal input encryptedDataEncryptionKeySeed[3];
+    signal input encryptedRefundData[4];
+    signal input encryptedNoteData[nOuts][4];
 
     var MAX_BITS_VALUE = 224;
 
@@ -117,8 +114,7 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     component inMerkleProof[nIns];
     for (var i = 0; i < nIns; i++) {
         inMerkleProof[i] = MerkleProof(cmTreeDepth);
-        //@todo check if this is sufficient
-        inMerkleProof[i].enabled <== inAssetIds[i] + inValues[i];
+        inMerkleProof[i].enabled <== (inAssetIds[i] + inValues[i]) + (inAssetIds[i] * inValues[i]);
         inMerkleProof[i].root <== commitmentTreeRoot;
         inMerkleProof[i].leaf <== inCommitmentHasher[i].out;
         inMerkleProof[i].pathIndices <== inPathIndices[i];
@@ -216,25 +212,27 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     refundAddressCheck.blinding <== refundAddressBlinding;
     refundAddressCheck.blindedAddress <== refundAddress;
 
+    // Encode assetId + value
+    component assetEncoder[nOuts];
+    for (var i = 0; i < nOuts; i++) {
+        assetEncoder[i] = EncodeAsset();
+        assetEncoder[i].assetId <== outAssetIds[i];
+        assetEncoder[i].value <== outValues[i];
+    }
+
     // Compliance encryption checks
     component complianceProof = ComplianceProof(nOuts);
-    complianceProof.ephemeralKey <== ephemeralKey;
-    complianceProof.ephemeralPublicKey <== ephemeralPublicKey;
-    complianceProof.encryptionPublicKey <== encryptionPublicKey;
-
-    complianceProof.inRootAddress <== inRootAddress.out;
-    complianceProof.refundAddress <== refundAddress;
-    complianceProof.refundAddressBlinding <== refundAddressBlinding;
-    complianceProof.outAssetIds <== outAssetIds;
+    complianceProof.keySeedEncryptionEphemeralKey <== keySeedEncryptionEphemeralKey;
+    complianceProof.keySeedEncryptionPublicKey <== keySeedEncryptionPublicKey;
+    complianceProof.dataEncryptionKeySeed <== dataEncryptionKeySeed;
+    complianceProof.refundData[0] <== inRootAddress.out;
+    complianceProof.refundData[1] <== refundAddressBlinding;
     for (var i = 0; i < nOuts; i++) {
-        complianceProof.outRootAddresses[i] <== outRootAddresses[i];
+        complianceProof.noteData[i][0] <== assetEncoder[i].out;
+        complianceProof.noteData[i][1] <== outRootAddresses[i];
+        complianceProof.noteData[i][2] <== outBlindings[i];
     }
-    complianceProof.outValues <== outValues;
-    complianceProof.outBlindings <== outBlindings;
-    
-    complianceProof.encryptedInRootAddress <== encryptedInRootAddress;
-    complianceProof.encryptedRefundAddressBlinding <== encryptedRefundAddressBlinding;
-    complianceProof.encryptedOutAssets <== encryptedOutAssets;
-    complianceProof.encryptedOutRootAddresses <== encryptedOutRootAddresses;
-    complianceProof.encryptedOutBlindings <== encryptedOutBlindings;
+    complianceProof.encryptedDataEncryptionKeySeed <== encryptedDataEncryptionKeySeed;
+    complianceProof.encryptedRefundData <== encryptedRefundData;
+    complianceProof.encryptedNoteData <== encryptedNoteData;
 }
