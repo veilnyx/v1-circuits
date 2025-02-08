@@ -14,7 +14,5 @@ component main { public [
     outCommitments,                         // len: nOuts
     refundAddress,                          // len: 1
     keySeedEncryptionPublicKey,             // len: 2
-    encryptedDataEncryptionKeySeed,         // len: 3
-    encryptedRefundData,                    // len: 4
-    encryptedNoteData                       // len: nOuts * 4
-]} = Transact(20, 25, 2, 1);                // total: 16 + 7 * nOuts + nIns
+    encryptedDataHash                       // len: 1
+]} = Transact(20, 25, 2, 1);                // total PI: 15

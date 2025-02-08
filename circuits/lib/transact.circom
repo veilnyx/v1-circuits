@@ -9,6 +9,7 @@ include "./ownershipProof.circom";
 include "./complianceProof.circom";
 include "./zeroSumFungible.circom";
 include "./zeroSumNonFungible.circom";
+include "./hashEncryptedData.circom";
 
 template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     // Recent merkle roots
@@ -57,6 +58,7 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     signal input encryptedDataEncryptionKeySeed[3];
     signal input encryptedRefundData[4];
     signal input encryptedNoteData[nOuts][4];
+    signal input encryptedDataHash;
 
     var MAX_BITS_VALUE = 224;
 
@@ -220,6 +222,28 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
         assetEncoder[i].value <== outValues[i];
     }
 
+    // Encrypted data validity check
+    component hashEncryptedData = HashEncryptedData(nOuts);
+    
+    // Assign encrypted key seed array elements
+    for (var i = 0; i < 3; i++) {
+        hashEncryptedData.encryptedDataEncryptionKeySeed[i] <== encryptedDataEncryptionKeySeed[i];
+    }
+    
+    // Assign encrypted refund data array elements
+    for (var i = 0; i < 4; i++) {
+        hashEncryptedData.encryptedRefundData[i] <== encryptedRefundData[i];
+    }
+    
+    // Assign encrypted note data array elements
+    for (var i = 0; i < nOuts; i++) {
+        for (var j = 0; j < 4; j++) {
+            hashEncryptedData.encryptedNoteData[i][j] <== encryptedNoteData[i][j];
+        }
+    }
+
+    hashEncryptedData.out === encryptedDataHash;
+    
     // Compliance encryption checks
     component complianceProof = ComplianceProof(nOuts);
     complianceProof.keySeedEncryptionEphemeralKey <== keySeedEncryptionEphemeralKey;
