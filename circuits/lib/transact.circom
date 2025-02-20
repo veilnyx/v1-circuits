@@ -10,6 +10,7 @@ include "./complianceProof.circom";
 include "./zeroSumFungible.circom";
 include "./zeroSumNonFungible.circom";
 include "./hashEncryptedData.circom";
+include "./hashEncryptedDataSha256.circom";
 
 template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     // Recent merkle roots
@@ -223,7 +224,7 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     }
 
     // Encrypted data validity check
-    component hashEncryptedData = HashEncryptedData(nOuts);
+    component hashEncryptedData = HashEncryptedDataSha256(nOuts);
     
     // Assign encrypted key seed array elements
     for (var i = 0; i < 3; i++) {
@@ -241,7 +242,12 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
             hashEncryptedData.encryptedNoteData[i][j] <== encryptedNoteData[i][j];
         }
     }
+    log("Sha256 public input hash:");
+    log(encryptedDataHash);
 
+    log("Sha256 circuit hash:");
+    log(hashEncryptedData.out);
+    
     hashEncryptedData.out === encryptedDataHash;
     
     // Compliance encryption checks
