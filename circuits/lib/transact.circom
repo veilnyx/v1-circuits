@@ -10,7 +10,8 @@ include "./complianceProof.circom";
 include "./zeroSumFungible.circom";
 include "./zeroSumNonFungible.circom";
 include "./hashEncryptedData.circom";
-include "./hashEncryptedDataSha256.circom";
+// include "./hashEncryptedDataSha256.circom";
+include "./HashUsingSha256.circom";
 
 template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     // Recent merkle roots
@@ -62,6 +63,18 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     signal input encryptedDataHash;
 
     var MAX_BITS_VALUE = 224;
+
+    // TODO remove
+    // Testing sha256 hashing outputs
+    log("----------CIRCUIT LOGS-----------");
+    component sha256HasherSingle = HashUsingSha256();
+    sha256HasherSingle.in <== addressTreeRoot;
+
+    log("circuit::match::PI:");
+    log(encryptedDataHash);
+    log("circuit::match::sha256 circuit:");
+    log(sha256HasherSingle.out);
+    sha256HasherSingle.out === encryptedDataHash;
 
     // Calculate address
     component inRootAddress = RootAddress();
@@ -223,6 +236,7 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
         assetEncoder[i].value <== outValues[i];
     }
 
+    /**
     // Encrypted data validity check
     component hashEncryptedData = HashEncryptedDataSha256(nOuts);
     
@@ -249,6 +263,7 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     log(hashEncryptedData.out);
     
     hashEncryptedData.out === encryptedDataHash;
+    */
     
     // Compliance encryption checks
     component complianceProof = ComplianceProof(nOuts);
