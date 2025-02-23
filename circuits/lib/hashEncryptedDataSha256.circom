@@ -14,7 +14,6 @@ template HashEncryptedDataSha256(nOuts) {
     var numCounter = 0;
     component num2Bits[totalNums]; // will store each num in bits
     
-
     // 1. Converting encryptedDataEncryptionKeySeed number to bits
     for(var i = 0; i < 3; i++) {
         num2Bits[numCounter] = Num2Bits(254); // Using 254 bits for each number/element
@@ -39,20 +38,23 @@ template HashEncryptedDataSha256(nOuts) {
     }
 
     // Concatenate all bits for Sha256 input
-     var totalBits = totalNums * 254;
+     var totalBits = totalNums * 256;
     component sha256Hasher = Sha256(totalBits); // will accept all num in bits format for hashing
 
     var offset = 0;
     for(var i = 0; i < totalNums; i++) {
+        sha256Hasher.in[offset] <== 0;
+        sha256Hasher.in[offset + 1] <== 0;
+        
         for(var j = 0; j < 254; j++) {
-            sha256Hasher.in[offset + j] <== num2Bits[i].out[j];
+            sha256Hasher.in[offset + 2 + j] <== num2Bits[i].out[253 - j];
         }
-        offset += 254;
+        offset += 256;
     }
 
     component bits2Num = Bits2Num(256);
     for(var i = 0; i < 256; i++) {
-        bits2Num.in[i] <== sha256Hasher.out[i];
+        bits2Num.in[i] <== sha256Hasher.out[255 - i];
     }
     
     out <== bits2Num.out;
