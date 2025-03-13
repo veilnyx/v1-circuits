@@ -9,7 +9,8 @@ include "./ownershipProof.circom";
 include "./complianceProof.circom";
 include "./zeroSumFungible.circom";
 include "./zeroSumNonFungible.circom";
-include "./hashEncryptedDataSha256.circom";
+include "./universalHashFunction.circom";
+// include "./hashEncryptedDataSha256.circom";
 // include "./hashEncryptedData.circom";
 // include "./HashUsingSha256.circom";
 
@@ -60,24 +61,10 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     signal input encryptedDataEncryptionKeySeed[3];
     signal input encryptedRefundData[4];
     signal input encryptedNoteData[nOuts][4];
-    signal input encryptedDataHash;
+    signal input alpha;
+    signal input beta;
 
     var MAX_BITS_VALUE = 224;
-
-    // TODO remove
-    // Testing sha256 hashing outputs
-    log("----------CIRCUIT LOGS-----------");
-
-    /**
-    component sha256HasherSingle = HashUsingSha256();
-    sha256HasherSingle.in <== addressTreeRoot;
-
-    log("circuit::match::PI:");
-    log(encryptedDataHash);
-    log("circuit::match::sha256 circuit:");
-    log(sha256HasherSingle.out);
-    sha256HasherSingle.out === encryptedDataHash;
-    */
 
     // Calculate address
     component inRootAddress = RootAddress();
@@ -239,33 +226,37 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
         assetEncoder[i].value <== outValues[i];
     }
 
-    // Encrypted data validity check
-    component hashEncryptedData = HashEncryptedDataSha256(nOuts);
-    
+    // Preparing inputs for UHF
+    // Merging all encrypted inputs in a single array
+    var encryptedInputCount = 3 + 4 + nOuts * 4; // each `encryptedNoteData` is of length 4
+    signal encryptedInputs[encryptedInputCount];
+    var counter = 0;
+
     // Assign encrypted key seed array elements
     for (var i = 0; i < 3; i++) {
-        hashEncryptedData.encryptedDataEncryptionKeySeed[i] <== encryptedDataEncryptionKeySeed[i];
+        encryptedInputs[counter] <== encryptedDataEncryptionKeySeed[i];
+        counter++;
     }
     
     // Assign encrypted refund data array elements
     for (var i = 0; i < 4; i++) {
-        hashEncryptedData.encryptedRefundData[i] <== encryptedRefundData[i];
+        encryptedInputs[counter] <== encryptedRefundData[i];
+        counter++;
     }
     
     // Assign encrypted note data array elements
     for (var i = 0; i < nOuts; i++) {
         for (var j = 0; j < 4; j++) {
-            hashEncryptedData.encryptedNoteData[i][j] <== encryptedNoteData[i][j];
+            encryptedInputs[counter] <== encryptedNoteData[i][j];
+            counter++;
         }
     }
-    log("Sha256 PInput hash:");
-    log(encryptedDataHash);
 
-    log("Sha256 circuit hash:");
-    log(hashEncryptedData.out);
-    
-    hashEncryptedData.out === encryptedDataHash;
-    
+    component UHF = UHF(encryptedInputCount);
+    UHF.encryptedInputs <== encryptedInputs;
+    UHF.alpha <== alpha;
+    UHF.beta === beta;
+
     // Compliance encryption checks
     component complianceProof = ComplianceProof(nOuts);
     complianceProof.keySeedEncryptionEphemeralKey <== keySeedEncryptionEphemeralKey;
