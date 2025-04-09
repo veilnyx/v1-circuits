@@ -7,13 +7,9 @@ component main { public [
     commitmentTreeRoot,                     // len: 1
     hash,                                   // len: 1
     pubFlow,                                // len: 1
-    pubAssetIds,                            // len: nOuts
-    pubValues,                              // len: nOuts
-    inNullifiers,                           // len: nIns
     outRevokerPublicKey,                    // len: 2
-    outCommitments,                         // len: nOuts
     refundAddress,                          // len: 1
     keySeedEncryptionPublicKey,             // len: 2
     alpha,                                  // len: 1
     beta                                    // len: 1
-]} = Transact(20, 25, 2, 1);                // total PI: 16
+]} = Transact(20, 25, 2, 1);                // total PI: 

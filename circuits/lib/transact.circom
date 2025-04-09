@@ -228,9 +228,41 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
 
     // Preparing inputs for UHF
     // Merging all encrypted inputs in a single array
-    var encryptedInputCount = 3 + 4 + nOuts * 4; // each `encryptedNoteData` is of length 4
+    // pubAssetIds: nOut elements
+    // pubValues: nOut elements
+    // inNullifiers: nIns elements
+    // outCommitments: nOut elements
+    // encryptedDataEncryptionKeySeed: 3 elements
+    // encryptedRefundData: 4 elements
+    // encryptedNoteData: nOut * 4 elements // each `encryptedNoteData` is of length 4
+
+    var encryptedInputCount = nOuts + nOuts + nIns + nOuts + 3 + 4 + nOuts * 4;
     signal encryptedInputs[encryptedInputCount];
     var counter = 0;
+
+    // Pushing pubAssetIds
+    for(var i = 0; i < nOuts; i++) {
+        encryptedInputs[counter] <== pubAssetIds[i];
+        counter++;
+    }
+
+    // Pushing pubValues
+    for(var i = 0; i < nOuts; i++) {
+        encryptedInputs[counter] <== pubValues[i];
+        counter++;
+    }
+
+    // Pushing inNullifier elements
+    for(var i = 0; i < nIns; i++) {
+        encryptedInputs[counter] <== inNullifiers[i];
+        counter++;
+    }
+
+    // Pushing commitment elements
+    for(var i = 0; i < nOuts; i++) {
+        encryptedInputs[counter] <== outCommitments[i];
+        counter++;
+    }
 
     // Assign encrypted key seed array elements
     for (var i = 0; i < 3; i++) {
