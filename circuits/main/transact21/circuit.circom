@@ -12,4 +12,4 @@ component main { public [
     keySeedEncryptionPublicKey,             // len: 2
     alpha,                                  // len: 1
     beta                                    // len: 1
-]} = Transact(20, 25, 2, 1);                // total PI: 
+]} = Transact(20, 25, 2, 1);                // total PI: 11 
