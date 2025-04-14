@@ -9,6 +9,10 @@ include "./ownershipProof.circom";
 include "./complianceProof.circom";
 include "./zeroSumFungible.circom";
 include "./zeroSumNonFungible.circom";
+include "./universalHashFunction.circom";
+// include "./hashEncryptedDataSha256.circom";
+// include "./hashEncryptedData.circom";
+// include "./HashUsingSha256.circom";
 
 template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     // Recent merkle roots
@@ -57,6 +61,8 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     signal input encryptedDataEncryptionKeySeed[3];
     signal input encryptedRefundData[4];
     signal input encryptedNoteData[nOuts][4];
+    signal input alpha;
+    signal input beta;
 
     var MAX_BITS_VALUE = 224;
 
@@ -219,6 +225,69 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
         assetEncoder[i].assetId <== outAssetIds[i];
         assetEncoder[i].value <== outValues[i];
     }
+
+    // Preparing inputs for UHF
+    // Merging all encrypted inputs in a single array
+    // pubAssetIds: nOut elements
+    // pubValues: nOut elements
+    // inNullifiers: nIns elements
+    // outCommitments: nOut elements
+    // encryptedDataEncryptionKeySeed: 3 elements
+    // encryptedRefundData: 4 elements
+    // encryptedNoteData: nOut * 4 elements // each `encryptedNoteData` is of length 4
+
+    var encryptedInputCount = nOuts + nOuts + nIns + nOuts + 3 + 4 + nOuts * 4;
+    signal encryptedInputs[encryptedInputCount];
+    var counter = 0;
+
+    // Pushing pubAssetIds
+    for(var i = 0; i < nOuts; i++) {
+        encryptedInputs[counter] <== pubAssetIds[i];
+        counter++;
+    }
+
+    // Pushing pubValues
+    for(var i = 0; i < nOuts; i++) {
+        encryptedInputs[counter] <== pubValues[i];
+        counter++;
+    }
+
+    // Pushing inNullifier elements
+    for(var i = 0; i < nIns; i++) {
+        encryptedInputs[counter] <== inNullifiers[i];
+        counter++;
+    }
+
+    // Pushing commitment elements
+    for(var i = 0; i < nOuts; i++) {
+        encryptedInputs[counter] <== outCommitments[i];
+        counter++;
+    }
+
+    // Assign encrypted key seed array elements
+    for (var i = 0; i < 3; i++) {
+        encryptedInputs[counter] <== encryptedDataEncryptionKeySeed[i];
+        counter++;
+    }
+    
+    // Assign encrypted refund data array elements
+    for (var i = 0; i < 4; i++) {
+        encryptedInputs[counter] <== encryptedRefundData[i];
+        counter++;
+    }
+    
+    // Assign encrypted note data array elements
+    for (var i = 0; i < nOuts; i++) {
+        for (var j = 0; j < 4; j++) {
+            encryptedInputs[counter] <== encryptedNoteData[i][j];
+            counter++;
+        }
+    }
+
+    component UHF = UHF(encryptedInputCount);
+    UHF.encryptedInputs <== encryptedInputs;
+    UHF.alpha <== alpha;
+    UHF.beta === beta;
 
     // Compliance encryption checks
     component complianceProof = ComplianceProof(nOuts);
