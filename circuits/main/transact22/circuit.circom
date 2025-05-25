@@ -11,5 +11,7 @@ component main { public [
     refundAddress,                          // len: 1
     keySeedEncryptionPublicKey,             // len: 2
     alpha,                                  // len: 1
-    beta                                    // len: 1
-]} = Transact(20, 25, 2, 2);                // total: 11
+    beta,                                   // len: 1
+    protocolFeeAssetIds,
+    protocolFeeValues
+]} = Transact(20, 25, 2, 2);                // total: 12

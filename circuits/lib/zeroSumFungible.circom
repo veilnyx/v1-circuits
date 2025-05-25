@@ -14,6 +14,10 @@ template ZeroSumFungible(nIns, nOuts) {
     signal input outValues[nOuts];
     signal input pubAssetIds[nOuts];
     signal input pubValues[nOuts];
+    signal input protocolFeeAssetIds[nOuts];
+    signal input protocolFeeValues[nOuts];
+    
+    signal isInflow <== 1 - pubFlow;
 
     // Sum input notes values with asset id equal to `assetId`
     component inSumValues = SumValues(nIns);
@@ -33,11 +37,26 @@ template ZeroSumFungible(nIns, nOuts) {
     publicSumValues.assetIds <== pubAssetIds;
     publicSumValues.values <== pubValues;
 
+    // Sum protocol values with asset id equal to `assetId`
+    component protocolFeeSum = SumValues(nOuts);
+    protocolFeeSum.selectedAssetId <== assetId;
+    protocolFeeSum.assetIds <== protocolFeeAssetIds;
+    protocolFeeSum.values <== protocolFeeValues;
+
     component isFungible = IsFungible();
     isFungible.assetId <== assetId;
 
     component forceEqualIfFungible = ForceEqualIfEnabled();
     forceEqualIfFungible.enabled <== isFungible.out;
-    forceEqualIfFungible.in[0] <== inSumValues.out + (1 - pubFlow) * publicSumValues.out;
-    forceEqualIfFungible.in[1] <== outSumValues.out + pubFlow * publicSumValues.out;
+
+    signal totalInputValue <== inSumValues.out + isInflow * publicSumValues.out;
+    log("Total input value:");
+    log(totalInputValue);
+
+    signal totalOutputValue <== outSumValues.out + (1 - isInflow) * publicSumValues.out + protocolFeeSum.out;
+    log("Total output value:");
+    log(totalOutputValue);
+
+    forceEqualIfFungible.in[0] <== totalInputValue;
+    forceEqualIfFungible.in[1] <== totalOutputValue;
 }

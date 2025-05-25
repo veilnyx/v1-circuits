@@ -63,6 +63,8 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     signal input encryptedNoteData[nOuts][4];
     signal input alpha;
     signal input beta;
+    signal input protocolFeeAssetIds[nOuts];
+    signal input protocolFeeValues[nOuts];
 
     var MAX_BITS_VALUE = 224;
 
@@ -153,6 +155,8 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
         outCommitmentsHasher[i].out === outCommitments[i];
     }
 
+    // q why is inZeroSumFungible component of a particular asset being provided with all asset details using `inZeroSumFungible[i].inAssetIds` and `inZeroSumFungible.inValues`?
+
     // Assert that total value of each fungible (ERC20) asset in inputs are conserved
     component inZeroSumFungible[nIns];
     for (var i = 0; i < nIns; i++) {
@@ -163,9 +167,17 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
         inZeroSumFungible[i].inValues <== inValues;
         inZeroSumFungible[i].outAssetIds <== outAssetIds;
         inZeroSumFungible[i].outValues <== outValues;
-        inZeroSumFungible[i].pubValues <== pubValues;
         inZeroSumFungible[i].pubAssetIds <== pubAssetIds;
+        inZeroSumFungible[i].pubValues <== pubValues;
+        inZeroSumFungible[i].protocolFeeAssetIds <== protocolFeeAssetIds;
+        inZeroSumFungible[i].protocolFeeValues <== protocolFeeValues;
     }
+
+    // q why is `outZeroSumFungible` check required when the same values/checks were performed by `inZeroSumFungible`?
+    // a Because for Deposit tx, the `inAssetIds[]` will be [0,0]. To make sure the deposited assets coming from `pubAssetIds` are checked for their value getting balanced, we need to perform the ZeroSumFungible checks on outAssetIds
+
+    // q For non deposit tx, where `inAssetIds[]` is not [0,0], will constraining both `inAssets` and `outAssets` with `ZeroSumFungible` be repetivive computation?
+    // a Yes. Can we optimize this? 
 
     // Assert that total value of each fungible (ERC20) asset in outputs are conserved
     component outZeroSumFungible[nOuts];
@@ -177,8 +189,10 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
         outZeroSumFungible[i].inValues <== inValues;
         outZeroSumFungible[i].outAssetIds <== outAssetIds;
         outZeroSumFungible[i].outValues <== outValues;
-        outZeroSumFungible[i].pubValues <== pubValues;
         outZeroSumFungible[i].pubAssetIds <== pubAssetIds;
+        outZeroSumFungible[i].pubValues <== pubValues;
+        outZeroSumFungible[i].protocolFeeAssetIds <== protocolFeeAssetIds;
+        outZeroSumFungible[i].protocolFeeValues <== protocolFeeValues;
     }
 
     // Assert that count of each non-fungible (ERC721) asset in inputs are conserved
