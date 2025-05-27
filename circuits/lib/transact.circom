@@ -63,8 +63,9 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     signal input encryptedNoteData[nOuts][4];
     signal input alpha;
     signal input beta;
-    signal input protocolFeeAssetIds[nOuts];
-    signal input protocolFeeValues[nOuts];
+    signal input txAssetIds[nIns];
+    signal input txValues[nIns];
+    signal input protocolFeeBps;
 
     var MAX_BITS_VALUE = 224;
 
@@ -158,6 +159,14 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     // q why is inZeroSumFungible component of a particular asset being provided with all asset details using `inZeroSumFungible[i].inAssetIds` and `inZeroSumFungible.inValues`?
 
     // Assert that total value of each fungible (ERC20) asset in inputs are conserved
+    signal protocolFeeValues[nIns];
+    signal divident[nIns];
+    // Calc protocol fee based on `txValues` and `protocolFeeBps`
+    for (var i = 0; i < nIns; i++) {
+        divident[i] <-- (txValues[i]  * protocolFeeBps);
+        protocolFeeValues[i] <== divident[i] / 10000;
+    }
+    
     component inZeroSumFungible[nIns];
     for (var i = 0; i < nIns; i++) {
         inZeroSumFungible[i] = ZeroSumFungible(nIns, nOuts);
@@ -169,7 +178,7 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
         inZeroSumFungible[i].outValues <== outValues;
         inZeroSumFungible[i].pubAssetIds <== pubAssetIds;
         inZeroSumFungible[i].pubValues <== pubValues;
-        inZeroSumFungible[i].protocolFeeAssetIds <== protocolFeeAssetIds;
+        inZeroSumFungible[i].protocolFeeAssetIds <== txAssetIds;
         inZeroSumFungible[i].protocolFeeValues <== protocolFeeValues;
     }
 
@@ -191,7 +200,7 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
         outZeroSumFungible[i].outValues <== outValues;
         outZeroSumFungible[i].pubAssetIds <== pubAssetIds;
         outZeroSumFungible[i].pubValues <== pubValues;
-        outZeroSumFungible[i].protocolFeeAssetIds <== protocolFeeAssetIds;
+        outZeroSumFungible[i].protocolFeeAssetIds <== txAssetIds;
         outZeroSumFungible[i].protocolFeeValues <== protocolFeeValues;
     }
 

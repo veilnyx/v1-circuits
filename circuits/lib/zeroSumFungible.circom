@@ -14,8 +14,8 @@ template ZeroSumFungible(nIns, nOuts) {
     signal input outValues[nOuts];
     signal input pubAssetIds[nOuts];
     signal input pubValues[nOuts];
-    signal input protocolFeeAssetIds[nOuts];
-    signal input protocolFeeValues[nOuts];
+    signal input protocolFeeAssetIds[nIns];
+    signal input protocolFeeValues[nIns];
     
     signal isInflow <== 1 - pubFlow;
 
@@ -38,7 +38,7 @@ template ZeroSumFungible(nIns, nOuts) {
     publicSumValues.values <== pubValues;
 
     // Sum protocol values with asset id equal to `assetId`
-    component protocolFeeSum = SumValues(nOuts);
+    component protocolFeeSum = SumValues(nIns);
     protocolFeeSum.selectedAssetId <== assetId;
     protocolFeeSum.assetIds <== protocolFeeAssetIds;
     protocolFeeSum.values <== protocolFeeValues;

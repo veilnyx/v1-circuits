@@ -12,6 +12,5 @@ component main { public [
     keySeedEncryptionPublicKey,             // len: 2
     alpha,                                  // len: 1
     beta,                                   // len: 1
-    protocolFeeAssetIds,
-    protocolFeeValues
+    protocolFeeBps
 ]} = Transact(20, 25, 2, 2);                // total: 12
