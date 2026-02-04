@@ -59,8 +59,10 @@ The following table lists all library dependencies used by `transact.circom`:
 | **sumValues.circom** | 24 | Summation of values for specific asset types | Selective sum accumulation |
 | **fungibility.circom** | 24 | Asset type classification (fungible vs non-fungible) | Asset ID range checks |
 | **countAssets.circom** | 30 | Count specific NFTs in input/output sets | NFT occurrence counting |
+| **treeUpdate.circom** | 153 | Merkle tree batch update circuit for commitment tree maintenance, used by the QueuedMerkleTree.sol contract |
+| **register.circom** | 22 | User registration circuit for address creation | Root address derivation, public key validation |
 
-**Total In-Scope SLOC:** 1,244 lines
+**Total In-Scope SLOC:** 1,419 lines
 
 ## External Dependencies
 
