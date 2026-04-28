@@ -8,7 +8,7 @@ template IsFungible() {
 
     component isLt = LessThan(24);
     isLt.in[0] <== assetId;
-    isLt.in[1] <== 0x020000;
+    isLt.in[1] <== 0x020000; // 131072
 
     out <== isLt.out;
 }

@@ -63,6 +63,7 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     signal input encryptedNoteData[nOuts][4];
     signal input alpha;
     signal input beta;
+    signal input gamma;
 
     var MAX_BITS_VALUE = 224;
 
@@ -284,10 +285,25 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
         }
     }
 
+    // Hash encryptedInputs using chained Poseidon(2) and add result to alpha
+    component encryptedInputsHasher[encryptedInputCount];
+    for (var i = 0; i < encryptedInputCount; i++) {
+        encryptedInputsHasher[i] = Poseidon(2);
+        if (i == 0) {
+            encryptedInputsHasher[i].inputs[0] <== 0;
+        } else {
+            encryptedInputsHasher[i].inputs[0] <== encryptedInputsHasher[i-1].out;
+        }
+        encryptedInputsHasher[i].inputs[1] <== encryptedInputs[i];
+    }
+    signal beta_internal <== encryptedInputsHasher[encryptedInputCount - 1].out;
+    beta_internal === beta;
+
     component UHF = UHF(encryptedInputCount);
     UHF.encryptedInputs <== encryptedInputs;
     UHF.alpha <== alpha;
-    UHF.beta === beta;
+    UHF.beta <== beta_internal;
+    UHF.gamma === gamma;
 
     // Compliance encryption checks
     component complianceProof = ComplianceProof(nOuts);
