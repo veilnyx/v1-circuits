@@ -28,14 +28,14 @@ template SchnorrVerify() {
     // Subgroup order (https://eips.ethereum.org/EIPS/eip-2494)
     var SUBGROUP_ORDER = 2736030358979909402780800718157159386076813972158567259200215660948447373041;
 
-    component sbits = Num2Bits(254);
+    component sbits = Num2Bits_strict();
     sbits.in <== s;
 
-    component ebits = Num2Bits(254);
+    component ebits = Num2Bits_strict();
     ebits.in <== e;
 
     // Assert s < SUBGROUP_ORDER
-    component comp = CompConstant(SUBGROUP_ORDER);
+    component comp = CompConstant(SUBGROUP_ORDER - 1);
     comp.in <== sbits.out;
     comp.out * enabled === 0;
 

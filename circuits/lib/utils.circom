@@ -8,7 +8,7 @@ template CastToBits(nOut) {
 
     assert(nOut < 254);
 
-    component nToB = Num2Bits(254);
+    component nToB = Num2Bits_strict();
     nToB.in <== in;
 
     component bToN = Bits2Num(nOut);

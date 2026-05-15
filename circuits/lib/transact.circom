@@ -34,7 +34,7 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
 
     // Input notes data 
     signal input inViewPrivateKey;
-    signal input inSignPublicKey[2]; // WHAT IF THIS IS REVOKER KEYS ITSELF?
+    signal input inSignPublicKey[2];
     signal input inRevokerPublicKeys[nIns][2];
     signal input inAssetIds[nIns];
     signal input inValues[nIns];

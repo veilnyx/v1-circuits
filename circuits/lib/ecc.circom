@@ -11,11 +11,11 @@ template PointMul() {
     // Subgroup order (https://eips.ethereum.org/EIPS/eip-2494)
     var SUBGROUP_ORDER = 2736030358979909402780800718157159386076813972158567259200215660948447373041;
 
-    component scalarBits = Num2Bits(254);
+    component scalarBits = Num2Bits_strict();
     scalarBits.in <== scalar;
 
     // Assert scaler < SUBGROUP_ORDER
-    component comp = CompConstant(SUBGROUP_ORDER);
+    component comp = CompConstant(SUBGROUP_ORDER - 1);
     comp.in <== scalarBits.out;
     comp.out === 0;
 

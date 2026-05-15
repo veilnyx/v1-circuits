@@ -7,7 +7,7 @@ template HashUsingSha256() {
     signal output out;
 
     // Step 1: Convert input field element to 254 bits
-    component num2Bits = Num2Bits(254);
+    component num2Bits = Num2Bits_strict();
     num2Bits.in <== in;
 
     // Step 2: Add 2 zero bits at the beginning to make it 256 bits (32 bytes)

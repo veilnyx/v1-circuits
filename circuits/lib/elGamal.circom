@@ -32,11 +32,11 @@ template ElGamalEncrypt() {
     // Subgroup order (https://eips.ethereum.org/EIPS/eip-2494)
     var SUBGROUP_ORDER = 2736030358979909402780800718157159386076813972158567259200215660948447373041;
 
-    component ephemeralKeyBits = Num2Bits(254);
+    component ephemeralKeyBits = Num2Bits_strict();
     ephemeralKeyBits.in <== ephemeralKey;
 
     // Assert r < SUBGROUP_ORDER
-    component comp = CompConstant(SUBGROUP_ORDER);
+    component comp = CompConstant(SUBGROUP_ORDER - 1);
     comp.in <== ephemeralKeyBits.out;
     comp.out === 0;
 
