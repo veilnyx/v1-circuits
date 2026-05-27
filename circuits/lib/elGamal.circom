@@ -4,6 +4,7 @@ include "../../node_modules/circomlib/circuits/bitify.circom";
 include "../../node_modules/circomlib/circuits/compconstant.circom";
 include "../../node_modules/circomlib/circuits/escalarmulany.circom";
 include "../../node_modules/circomlib/circuits/poseidon.circom";
+include "./constants.circom";
 
 // Using encoding free hashed el gamal encryption that uses addition
 // See: https://www.di.ens.fr/david.pointcheval/Documents/Papers/2006_pkcC.pdf
@@ -23,14 +24,8 @@ template ElGamalEncrypt() {
     // Ciphertext
     signal output out;
 
-    // Base point (G) (https://eips.ethereum.org/EIPS/eip-2494)
-    var BASE8[2] = [
-        5299619240641551281634865583518297030282874472190772894086521144482721001553,
-        16950150798460657717958625567821834550301663161624707787222815936182638968203
-    ];
-
-    // Subgroup order (https://eips.ethereum.org/EIPS/eip-2494)
-    var SUBGROUP_ORDER = 2736030358979909402780800718157159386076813972158567259200215660948447373041;
+    var BASE8[2] = GetBase8Point();
+    var SUBGROUP_ORDER = GetSubgroupOrder();
 
     component ephemeralKeyBits = Num2Bits_strict();
     ephemeralKeyBits.in <== ephemeralKey;

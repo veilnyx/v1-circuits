@@ -10,9 +10,7 @@ include "./complianceProof.circom";
 include "./zeroSumFungible.circom";
 include "./zeroSumNonFungible.circom";
 include "./universalHashFunction.circom";
-// include "./hashEncryptedDataSha256.circom";
-// include "./hashEncryptedData.circom";
-// include "./HashUsingSha256.circom";
+include "./constants.circom";
 
 template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     // Recent merkle roots
@@ -65,7 +63,7 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     signal input beta;
     signal input gamma;
 
-    var MAX_BITS_VALUE = 224;
+    var MAX_BITS_VALUE = GetMaxBitValue();
 
     // Calculate address
     component inRootAddress = RootAddress();
@@ -121,7 +119,7 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     component inMerkleProof[nIns];
     for (var i = 0; i < nIns; i++) {
         inMerkleProof[i] = MerkleProof(cmTreeDepth);
-        inMerkleProof[i].enabled <== (inAssetIds[i] + inValues[i]) + (inAssetIds[i] * inValues[i]);
+        inMerkleProof[i].enabled <== inAssetIds[i] + inValues[i];
         inMerkleProof[i].root <== commitmentTreeRoot;
         inMerkleProof[i].leaf <== inCommitmentHasher[i].out;
         inMerkleProof[i].pathIndices <== inPathIndices[i];

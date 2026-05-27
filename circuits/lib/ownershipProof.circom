@@ -8,7 +8,6 @@ template OwnershipProof() {
     signal input signature[2];
 
     component schnorr = SchnorrVerify();
-    schnorr.enabled <== 1;
     schnorr.m <== hash;
     schnorr.publicKey <== publicKey;
     schnorr.s <== signature[0];

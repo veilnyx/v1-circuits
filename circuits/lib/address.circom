@@ -1,7 +1,6 @@
 pragma circom 2.1.5;
 
 include "../../node_modules/circomlib/circuits/poseidon.circom";
-include "../../node_modules/circomlib/circuits/comparators.circom";
 
 template RootAddress() {
     signal input signPublicKey[2];
@@ -42,8 +41,6 @@ template BlindedAddressCheck() {
     xAddress.revokerPublicKey <== revokerPublicKey;
     xAddress.blinding <== blinding;
 
-    component checkEq = ForceEqualIfEnabled();
-    checkEq.enabled <== blindedAddress;
-    checkEq.in[0] <== xAddress.out;
-    checkEq.in[1] <== blindedAddress;
+    // ForceEqualIfEnabled
+    (blindedAddress - xAddress.out) * blindedAddress === 0;
 }

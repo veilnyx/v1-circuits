@@ -6,16 +6,15 @@ template UHF(inputCount) {
     signal input beta;
     signal output gamma;
 
-    signal coefficientPowers[inputCount + 1];
-    coefficientPowers[0] <== 1;
-    signal products[inputCount];
     signal accumulator[inputCount + 1];
     accumulator[0] <== 0;
     
+    signal coeff[inputCount + 1];
+    coeff[0] <== 1;
+
     for(var i = 0; i < inputCount; i++) {
-        products[i] <== encryptedInputs[i] * coefficientPowers[i];
-        accumulator[i+1] <== accumulator[i] + products[i];
-        coefficientPowers[i+1] <== coefficientPowers[i] * (alpha + beta);
+        accumulator[i + 1] <== accumulator[i] + encryptedInputs[i] * coeff[i];
+        coeff[i + 1] <== coeff[i] * (alpha + beta);
     }
 
     gamma <== accumulator[inputCount];

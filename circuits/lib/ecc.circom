@@ -2,14 +2,14 @@ pragma circom 2.1.6;
 
 include "../../node_modules/circomlib/circuits/escalarmulany.circom";
 include "../../node_modules/circomlib/circuits/compconstant.circom";
+include "./constants.circom";
 
 template PointMul() {
     signal input scalar;
     signal input point[2];
     signal output out[2];
 
-    // Subgroup order (https://eips.ethereum.org/EIPS/eip-2494)
-    var SUBGROUP_ORDER = 2736030358979909402780800718157159386076813972158567259200215660948447373041;
+    var SUBGROUP_ORDER = GetSubgroupOrder();
 
     component scalarBits = Num2Bits_strict();
     scalarBits.in <== scalar;
@@ -30,11 +30,7 @@ template PrivateKeyToPublicKey() {
     signal input privateKey;
     signal output out[2];
 
-    // Base point (G) (https://eips.ethereum.org/EIPS/eip-2494)
-    var BASE8[2] = [
-        5299619240641551281634865583518297030282874472190772894086521144482721001553,
-        16950150798460657717958625567821834550301663161624707787222815936182638968203
-    ];
+    var BASE8[2] = GetBase8Point();
 
     component mul = PointMul();
     mul.scalar <== privateKey;

@@ -3,6 +3,7 @@ pragma circom 2.1.5;
 include "../../node_modules/circomlib/circuits/bitify.circom";
 include "../../node_modules/circomlib/circuits/poseidon.circom";
 include "../../node_modules/circomlib/circuits/switcher.circom";
+include "../../node_modules/circomlib/circuits/mux.circom";
 include "./utils.circom";
 
 template TreeUpdate(nLevels, nLeaves) {
@@ -42,32 +43,26 @@ template TreeUpdate(nLevels, nLeaves) {
     newRoot === intermediaryRoots[nLeaves];
 
 
-    // Selectors to select root and subtree values at a point when last non-zero
-    // leaf was inserted
+    // Select root and subtree values at the point when last non-zero leaf was inserted
+    // using Multiplexer for efficient binary tree selection
     signal zeroLeafStart <== nLeaves - nZeroLeaves;
-    component selectors[nLeaves + 1];
+    
+    component muxRoot = Multiplexer(nLeaves + 1, 8);
+    muxRoot.index <== zeroLeafStart;
     for (var i = 0; i < nLeaves + 1; i++) {
-        selectors[i] = IsZero();
-        selectors[i].in <== i - zeroLeafStart;
+        muxRoot.inputs[i] <== intermediaryRoots[i];
     }
+    muxRoot.out === newRoot;
 
-    // Selects the root at which last non-zero leaf was inserted. Since whole full tree
-    // state remains same, it is same as before
-    component sumRoots = Sum(nLeaves + 1);
-    for (var i = 0; i < nLeaves + 1; i++) {
-        sumRoots.in[i] <== selectors[i].out * intermediaryRoots[i];
-    }
-    sumRoots.out === newRoot;
-
-    // Selects the subtree values at which last non-zero leaf was inserted
-    component sumSubtreeVal[nLevels]; 
+    // Select subtree values at which last non-zero leaf was inserted
+    component muxSubtrees[nLevels];
     for (var i = 0; i < nLevels; i++) {
-        sumSubtreeVal[i] = Sum(nLeaves + 1);
+        muxSubtrees[i] = Multiplexer(nLeaves + 1, 8);
+        muxSubtrees[i].index <== zeroLeafStart;
         for (var j = 0; j < nLeaves + 1; j++) {
-            sumSubtreeVal[i].in[j] <== selectors[j].out * intermediarySubtrees[j][i];
+            muxSubtrees[i].inputs[j] <== intermediarySubtrees[j][i];
         }
-
-        newSubtrees[i] === sumSubtreeVal[i].out;
+        muxSubtrees[i].out === newSubtrees[i];
     }
 }
 
