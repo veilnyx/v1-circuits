@@ -6,7 +6,6 @@ This document defines the audit scope for the `transact.circom` circuit and its 
 
 **Primary Circuit:** `circuits/lib/transact.circom`  
 **Circuit Version:** Circom 2.1.6  
-**Audit Date:** January 2026  
 **Repository:** veilnyx/v1-circuits (dev branch)
 
 ## Circuit Purpose
@@ -134,8 +133,9 @@ The circuits also depend on the following external libraries (not in audit scope
 - `outRevokerPublicKey`: Public key of the choosen revoker for the tx
 - `refundAddress`: The address of the sender, who will receive the refund UTXOs
 - `keySeedEncryptionPublicKey`: The public key of the compliance group for the tx
-- `alpha`: Sequential hash of all encrypted values being binded by the UHF(D, alpha)
-- `beta`: Universal hash function output
+- `alpha`: Sequential hash of all encrypted values using SHA256 (not computed in circuits)
+- `beta`: Sequential hash of all encrypted values using Poseidon(2). Computed and constrained inside the circuit.
+- `gamma`: Universal hash function output
 
 ### Private Inputs
 - Registration: `addressPathIndex`, `addressPathElements[addrTreeDepth]`

@@ -18,7 +18,7 @@ template ConvertAndHash(chunkSize) {
     var offset = 0;
 
     // Convert prev to bits and add to hasher input
-    component prevNum2Bits = Num2Bits(254);
+    component prevNum2Bits = Num2Bits_strict();
     prevNum2Bits.in <== prev;
 
     hasher.in[0] <== 0;
@@ -33,7 +33,7 @@ template ConvertAndHash(chunkSize) {
 
     // Process current chunk in same byte order
     for(var i = 0; i < chunkSize; i++) {
-        num2Bits[i] = Num2Bits(254);
+        num2Bits[i] = Num2Bits_strict();
         num2Bits[i].in <== nums[i];
             
         hasher.in[offset] <== 0;

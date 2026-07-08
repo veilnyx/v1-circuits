@@ -1,6 +1,5 @@
 pragma circom 2.1.5;
 
-include "../../node_modules/circomlib/circuits/comparators.circom";
 include "./sumValues.circom";
 include "./fungibility.circom";
 
@@ -36,8 +35,13 @@ template ZeroSumFungible(nIns, nOuts) {
     component isFungible = IsFungible();
     isFungible.assetId <== assetId;
 
-    component forceEqualIfFungible = ForceEqualIfEnabled();
-    forceEqualIfFungible.enabled <== isFungible.out;
-    forceEqualIfFungible.in[0] <== inSumValues.out + (1 - pubFlow) * publicSumValues.out;
-    forceEqualIfFungible.in[1] <== outSumValues.out + pubFlow * publicSumValues.out;
+    
+    signal totalInSumValues;
+    signal totalOutSumValues;
+    totalInSumValues <== inSumValues.out + (1 - pubFlow) * publicSumValues.out;
+    totalOutSumValues <== outSumValues.out + pubFlow * publicSumValues.out;
+    
+    // ForceEqualIfEnabled
+    // Enforce zero-sum constraint when fungible
+    (totalOutSumValues - totalInSumValues) * isFungible.out === 0;
 }

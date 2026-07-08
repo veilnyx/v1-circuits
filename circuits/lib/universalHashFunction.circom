@@ -3,19 +3,19 @@ pragma circom 2.1.6;
 template UHF(inputCount) {
     signal input encryptedInputs[inputCount];
     signal input alpha;
-    signal output beta;
+    signal input beta;
+    signal output gamma;
 
-    signal alphaPowers[inputCount + 1];
-    alphaPowers[0] <== 1;
-    signal products[inputCount];
     signal accumulator[inputCount + 1];
     accumulator[0] <== 0;
     
+    signal coeff[inputCount + 1];
+    coeff[0] <== 1;
+
     for(var i = 0; i < inputCount; i++) {
-        products[i] <== encryptedInputs[i] * alphaPowers[i];
-        accumulator[i+1] <== accumulator[i] + products[i];
-        alphaPowers[i+1] <== alphaPowers[i] * alpha;
+        accumulator[i + 1] <== accumulator[i] + encryptedInputs[i] * coeff[i];
+        coeff[i + 1] <== coeff[i] * (alpha + beta);
     }
 
-    beta <== accumulator[inputCount];
+    gamma <== accumulator[inputCount];
 }

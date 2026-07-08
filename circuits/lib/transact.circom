@@ -10,9 +10,7 @@ include "./complianceProof.circom";
 include "./zeroSumFungible.circom";
 include "./zeroSumNonFungible.circom";
 include "./universalHashFunction.circom";
-// include "./hashEncryptedDataSha256.circom";
-// include "./hashEncryptedData.circom";
-// include "./HashUsingSha256.circom";
+include "./constants.circom";
 
 template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     // Recent merkle roots
@@ -34,7 +32,7 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
 
     // Input notes data 
     signal input inViewPrivateKey;
-    signal input inSignPublicKey[2]; // WHAT IF THIS IS REVOKER KEYS ITSELF?
+    signal input inSignPublicKey[2];
     signal input inRevokerPublicKeys[nIns][2];
     signal input inAssetIds[nIns];
     signal input inValues[nIns];
@@ -63,8 +61,9 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     signal input encryptedNoteData[nOuts][4];
     signal input alpha;
     signal input beta;
+    signal input gamma;
 
-    var MAX_BITS_VALUE = 224;
+    var MAX_BITS_VALUE = GetMaxBitValue();
 
     // Calculate address
     component inRootAddress = RootAddress();
@@ -120,7 +119,7 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     component inMerkleProof[nIns];
     for (var i = 0; i < nIns; i++) {
         inMerkleProof[i] = MerkleProof(cmTreeDepth);
-        inMerkleProof[i].enabled <== (inAssetIds[i] + inValues[i]) + (inAssetIds[i] * inValues[i]);
+        inMerkleProof[i].enabled <== inAssetIds[i] + inValues[i];
         inMerkleProof[i].root <== commitmentTreeRoot;
         inMerkleProof[i].leaf <== inCommitmentHasher[i].out;
         inMerkleProof[i].pathIndices <== inPathIndices[i];
@@ -284,10 +283,25 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
         }
     }
 
+    // Hash encryptedInputs using chained Poseidon(2) and add result to alpha
+    component encryptedInputsHasher[encryptedInputCount];
+    for (var i = 0; i < encryptedInputCount; i++) {
+        encryptedInputsHasher[i] = Poseidon(2);
+        if (i == 0) {
+            encryptedInputsHasher[i].inputs[0] <== 0;
+        } else {
+            encryptedInputsHasher[i].inputs[0] <== encryptedInputsHasher[i-1].out;
+        }
+        encryptedInputsHasher[i].inputs[1] <== encryptedInputs[i];
+    }
+    signal beta_internal <== encryptedInputsHasher[encryptedInputCount - 1].out;
+    beta_internal === beta;
+
     component UHF = UHF(encryptedInputCount);
     UHF.encryptedInputs <== encryptedInputs;
     UHF.alpha <== alpha;
-    UHF.beta === beta;
+    UHF.beta <== beta_internal;
+    UHF.gamma === gamma;
 
     // Compliance encryption checks
     component complianceProof = ComplianceProof(nOuts);

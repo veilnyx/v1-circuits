@@ -1,6 +1,5 @@
 pragma circom 2.1.5;
 
-include "../../node_modules/circomlib/circuits/comparators.circom";
 include "./countAssets.circom";
 include "./fungibility.circom";
 
@@ -39,13 +38,15 @@ template ZeroSumNonFungible(nIns, nOuts) {
     component isNonFungible = IsNonFungible();
     isNonFungible.assetId <== assetId;
 
-    component inForceEqualIfNonFungible = ForceEqualIfEnabled();
-    inForceEqualIfNonFungible.enabled <== isNonFungible.out;
-    inForceEqualIfNonFungible.in[0] <== inCountNft.out + (1 - pubFlow) * publicCountNft.out;
-    inForceEqualIfNonFungible.in[1] <== 1;
-
-    component outForceEqualIfNonFungible = ForceEqualIfEnabled();
-    outForceEqualIfNonFungible.enabled <== isNonFungible.out;
-    outForceEqualIfNonFungible.in[0] <== outCountNft.out + pubFlow * publicCountNft.out;
-    outForceEqualIfNonFungible.in[1] <== 1;
+    // Store computed NFT counts in intermediate signals
+    signal totalInNftCount;
+    signal totalOutNftCount;
+    
+    totalInNftCount <== inCountNft.out + (1 - pubFlow) * publicCountNft.out;
+    totalOutNftCount <== outCountNft.out + pubFlow * publicCountNft.out;
+    
+    // ForceEqualIfEnabled
+    // Enforce unit count constraints when non-fungible
+    (totalInNftCount - 1) * isNonFungible.out === 0;
+    (totalOutNftCount - 1) * isNonFungible.out === 0;
 }
