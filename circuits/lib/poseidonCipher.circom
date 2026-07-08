@@ -42,14 +42,40 @@ template _Mix(t, M) {
     }
 }
 
+// Common Poseidon decryption logic
+// Sets up iterations and wires all signals
+template _PoseidonDecryptCore(length) {
+    var decryptedLength = length;
+    while (decryptedLength % 3 != 0) {
+        decryptedLength++;
+    }
+
+    signal input ciphertext[decryptedLength+1];
+    signal input nonce;
+    signal input key[2];
+    signal output decrypted[decryptedLength];
+    signal output decryptedLast;
+
+    component iterations = PoseidonDecryptIterations(length);
+    iterations.nonce <== nonce;
+    iterations.key[0] <== key[0];
+    iterations.key[1] <== key[1];
+    for (var i = 0; i < decryptedLength + 1; i++) {
+        iterations.ciphertext[i] <== ciphertext[i];
+    }
+
+    for (var i = 0; i < decryptedLength; i ++) {
+        decrypted[i] <== iterations.decrypted[i];
+    }
+    
+    decryptedLast <== iterations.decryptedLast;
+}
+
 // Poseidon decryption circuit
 // param length: length of the input
 // This will fail to generate a proof if the ciphertext
 // or any of the other inputs are invalid
 template PoseidonDecrypt(length) {
-    // the length of the decrypted output 
-    // must be a multiple of 3
-    // e.g. if length == 4, decryptedLength == 6
     var decryptedLength = length;
     while (decryptedLength % 3 != 0) {
         decryptedLength++;
@@ -60,30 +86,24 @@ template PoseidonDecrypt(length) {
     signal input key[2];
     signal output decrypted[decryptedLength];
 
-    component iterations = PoseidonDecryptIterations(length);
-    iterations.nonce <== nonce;
-    iterations.key[0] <== key[0];
-    iterations.key[1] <== key[1];
-    for (var i = 0; i < decryptedLength + 1; i++) {
-        iterations.ciphertext[i] <== ciphertext[i];
-    }
+    component core = _PoseidonDecryptCore(length);
+    core.ciphertext <== ciphertext;
+    core.nonce <== nonce;
+    core.key <== key;
 
     // check the last ciphertext element
-    iterations.decryptedLast === ciphertext[decryptedLength];
+    core.decryptedLast === ciphertext[decryptedLength];
 
     for (var i = 0; i < decryptedLength; i ++) {
-        decrypted[i] <== iterations.decrypted[i];
+        decrypted[i] <== core.decrypted[i];
     }
 
-    // If length > 3, check if the last (3 - (l mod 3)) elements of the message
-    // are 0
-    if (length % 3 > 0) {
-        if (length % 3 == 2) {
-            decrypted[decryptedLength - 1] === 0;
-        } else if (length % 3 == 2) {
-            decrypted[decryptedLength - 1] === 0;
-            decrypted[decryptedLength - 2] === 0;
-        }
+    // If length % 3 > 0, check if the last (3 - (l mod 3)) elements of the message are 0
+    if (length % 3 == 1) {
+        core.decrypted[decryptedLength - 1] === 0;
+        core.decrypted[decryptedLength - 2] === 0;
+    } else if (length % 3 == 2) {
+        core.decrypted[decryptedLength - 1] === 0;
     }
 } 
 
@@ -105,16 +125,13 @@ template PoseidonDecryptWithoutCheck(length) {
     signal input key[2];
     signal output decrypted[decryptedLength];
 
-    component iterations = PoseidonDecryptIterations(length);
-    iterations.nonce <== nonce;
-    iterations.key[0] <== key[0];
-    iterations.key[1] <== key[1];
-    for (var i = 0; i < decryptedLength + 1; i++) {
-        iterations.ciphertext[i] <== ciphertext[i];
-    }
+    component core = _PoseidonDecryptCore(length);
+    core.ciphertext <== ciphertext;
+    core.nonce <== nonce;
+    core.key <== key;
 
     for (var i = 0; i < decryptedLength; i ++) {
-        decrypted[i] <== iterations.decrypted[i];
+        decrypted[i] <== core.decrypted[i];
     }
 }
 

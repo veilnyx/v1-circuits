@@ -8,7 +8,7 @@ template CastToBits(nOut) {
 
     assert(nOut < 254);
 
-    component nToB = Num2Bits(254);
+    component nToB = Num2Bits_strict();
     nToB.in <== in;
 
     component bToN = Bits2Num(nOut);
@@ -32,12 +32,12 @@ template Sum(n) {
     signal input in[n];
     signal output out;
 
-    // Calculate the sum of the inputs
-    signal intermediateSums[n+1];
-    intermediateSums[0] <== 0;
+    signal accumulator[n + 1];
+    accumulator[0] <== 0;
+    
     for (var i = 0; i < n; i++) {
-        intermediateSums[i+1] <== intermediateSums[i] + in[i];
+        accumulator[i + 1] <== accumulator[i] + in[i];
     }
 
-    out <== intermediateSums[n];
+    out <== accumulator[n];
 }

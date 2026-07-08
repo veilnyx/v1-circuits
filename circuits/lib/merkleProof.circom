@@ -28,8 +28,6 @@ template MerkleProof(nLevels) {
         hasher[i].inputs[1] <== switcher[i].outR;
     }
 
-    component checkRoot = ForceEqualIfEnabled();
-    checkRoot.enabled <== enabled;
-    checkRoot.in[0] <== root;
-    checkRoot.in[1] <== hasher[nLevels - 1].out;
+    // ForceEqualIfEnabled
+    (root - hasher[nLevels - 1].out) * enabled === 0;
 }

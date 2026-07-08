@@ -9,6 +9,8 @@ include "./ownershipProof.circom";
 include "./complianceProof.circom";
 include "./zeroSumFungible.circom";
 include "./zeroSumNonFungible.circom";
+include "./universalHashFunction.circom";
+include "./constants.circom";
 
 template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     // Recent merkle roots
@@ -30,7 +32,7 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
 
     // Input notes data 
     signal input inViewPrivateKey;
-    signal input inSignPublicKey[2]; // WHAT IF THIS IS REVOKER KEYS ITSELF?
+    signal input inSignPublicKey[2];
     signal input inRevokerPublicKeys[nIns][2];
     signal input inAssetIds[nIns];
     signal input inValues[nIns];
@@ -57,8 +59,11 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     signal input encryptedDataEncryptionKeySeed[3];
     signal input encryptedRefundData[4];
     signal input encryptedNoteData[nOuts][4];
+    signal input alpha;
+    signal input beta;
+    signal input gamma;
 
-    var MAX_BITS_VALUE = 224;
+    var MAX_BITS_VALUE = GetMaxBitValue();
 
     // Calculate address
     component inRootAddress = RootAddress();
@@ -114,7 +119,7 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     component inMerkleProof[nIns];
     for (var i = 0; i < nIns; i++) {
         inMerkleProof[i] = MerkleProof(cmTreeDepth);
-        inMerkleProof[i].enabled <== (inAssetIds[i] + inValues[i]) + (inAssetIds[i] * inValues[i]);
+        inMerkleProof[i].enabled <== inAssetIds[i] + inValues[i];
         inMerkleProof[i].root <== commitmentTreeRoot;
         inMerkleProof[i].leaf <== inCommitmentHasher[i].out;
         inMerkleProof[i].pathIndices <== inPathIndices[i];
@@ -219,6 +224,84 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
         assetEncoder[i].assetId <== outAssetIds[i];
         assetEncoder[i].value <== outValues[i];
     }
+
+    // Preparing inputs for UHF
+    // Merging all encrypted inputs in a single array
+    // pubAssetIds: nOut elements
+    // pubValues: nOut elements
+    // inNullifiers: nIns elements
+    // outCommitments: nOut elements
+    // encryptedDataEncryptionKeySeed: 3 elements
+    // encryptedRefundData: 4 elements
+    // encryptedNoteData: nOut * 4 elements // each `encryptedNoteData` is of length 4
+
+    var encryptedInputCount = nOuts + nOuts + nIns + nOuts + 3 + 4 + nOuts * 4;
+    signal encryptedInputs[encryptedInputCount];
+    var counter = 0;
+
+    // Pushing pubAssetIds
+    for(var i = 0; i < nOuts; i++) {
+        encryptedInputs[counter] <== pubAssetIds[i];
+        counter++;
+    }
+
+    // Pushing pubValues
+    for(var i = 0; i < nOuts; i++) {
+        encryptedInputs[counter] <== pubValues[i];
+        counter++;
+    }
+
+    // Pushing inNullifier elements
+    for(var i = 0; i < nIns; i++) {
+        encryptedInputs[counter] <== inNullifiers[i];
+        counter++;
+    }
+
+    // Pushing commitment elements
+    for(var i = 0; i < nOuts; i++) {
+        encryptedInputs[counter] <== outCommitments[i];
+        counter++;
+    }
+
+    // Assign encrypted key seed array elements
+    for (var i = 0; i < 3; i++) {
+        encryptedInputs[counter] <== encryptedDataEncryptionKeySeed[i];
+        counter++;
+    }
+    
+    // Assign encrypted refund data array elements
+    for (var i = 0; i < 4; i++) {
+        encryptedInputs[counter] <== encryptedRefundData[i];
+        counter++;
+    }
+    
+    // Assign encrypted note data array elements
+    for (var i = 0; i < nOuts; i++) {
+        for (var j = 0; j < 4; j++) {
+            encryptedInputs[counter] <== encryptedNoteData[i][j];
+            counter++;
+        }
+    }
+
+    // Hash encryptedInputs using chained Poseidon(2) and add result to alpha
+    component encryptedInputsHasher[encryptedInputCount];
+    for (var i = 0; i < encryptedInputCount; i++) {
+        encryptedInputsHasher[i] = Poseidon(2);
+        if (i == 0) {
+            encryptedInputsHasher[i].inputs[0] <== 0;
+        } else {
+            encryptedInputsHasher[i].inputs[0] <== encryptedInputsHasher[i-1].out;
+        }
+        encryptedInputsHasher[i].inputs[1] <== encryptedInputs[i];
+    }
+    signal beta_internal <== encryptedInputsHasher[encryptedInputCount - 1].out;
+    beta_internal === beta;
+
+    component UHF = UHF(encryptedInputCount);
+    UHF.encryptedInputs <== encryptedInputs;
+    UHF.alpha <== alpha;
+    UHF.beta <== beta_internal;
+    UHF.gamma === gamma;
 
     // Compliance encryption checks
     component complianceProof = ComplianceProof(nOuts);
