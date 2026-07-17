@@ -1,6 +1,6 @@
-// SPDX-License-Identifier: LicenseRef-BUSL-1.1
-// Copyright (c) 2026 Gelbfeld AG. Licensed under the Business Source License 1.1.
-// See /licenses/BUSL_LICENSE. Not for use in a Production Environment.
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2026 Gelbfeld AG. Licensed under the GNU General Public License v3.0.
+// See /licenses/GPL_LICENSE. Portions derived from GPL-3.0 works; see /LICENSE.
 
 // Original implementation: https://github.com/weijiekoh/circomlib/blob/feat/poseidon-encryption/circuits/poseidon.circom
 // All credits to the original authors

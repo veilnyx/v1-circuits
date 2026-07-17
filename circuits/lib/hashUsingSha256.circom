@@ -1,6 +1,6 @@
-// SPDX-License-Identifier: LicenseRef-BUSL-1.1
-// Copyright (c) 2026 Gelbfeld AG. Licensed under the Business Source License 1.1.
-// See /licenses/BUSL_LICENSE. Not for use in a Production Environment.
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2026 Gelbfeld AG. Licensed under the GNU General Public License v3.0.
+// See /licenses/GPL_LICENSE. Portions derived from GPL-3.0 works; see /LICENSE.
 
 pragma circom 2.1.5;
 include "../../node_modules/circomlib/circuits/sha256/sha256.circom";
