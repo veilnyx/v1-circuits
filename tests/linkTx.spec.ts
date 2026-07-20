@@ -1,9 +1,9 @@
 import chai, { assert } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
-import { createNote, getCircuit } from './helpers';
+import { createNote, getCircuit, pointToArray } from './helpers';
 import MerkleTree from 'fixed-merkle-tree';
-import { Point, poseidonHash } from '@zkfi-tech/babyjubjub';
-import { hexFixed, randomBigInt, randomHex } from '@zkfi-tech/utils';
+import { Point, poseidonHash } from '@veilnyx-sdk/babyjubjub';
+import { hexFixed, randomBigInt, randomHex } from '@veilnyx-sdk/utils';
 import { toHex, padHex } from 'viem';
 
 chai.use(chaiAsPromised);
@@ -24,7 +24,7 @@ describe('linkTx', function () {
     const notes = Array.from({ length: 2 }).map((_, i) =>
       createNote({
         value: randomBigInt(16),
-        pubKey: pubKey.toArray(),
+        pubKey: pointToArray(pubKey),
         assetId: 0x010001 + i,
         leafIndex: i,
       }),
@@ -62,14 +62,14 @@ describe('linkTx', function () {
     const tree = getTree();
     const realNote = createNote({
       value: randomBigInt(16),
-      pubKey: pubKey.toArray(),
+      pubKey: pointToArray(pubKey),
       assetId: 0x010001,
       leafIndex: 0,
     });
 
     const dummyNote = createNote({
       value: BigInt(0),
-      pubKey: pubKey.toArray(),
+      pubKey: pointToArray(pubKey),
       assetId: 0,
       leafIndex: 0,
     });

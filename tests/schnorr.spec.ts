@@ -1,6 +1,6 @@
 import { assert } from 'chai';
-import { randomBigInt } from '@zkfi-tech/utils';
-import { poseidonHash } from '@zkfi-tech/babyjubjub';
+import { randomBigInt } from '@veilnyx-sdk/utils';
+import { poseidonHash } from '@veilnyx-sdk/babyjubjub';
 import { MSG_ASSERT_FAILED, getCircuit, randomAccount } from './helpers';
 
 describe('schnorr', function () {
@@ -17,7 +17,6 @@ describe('schnorr', function () {
     const sign = account.sign(message);
 
     const inputs = {
-      enabled: 1,
       m: message,
       publicKey: [account.signer.publicKey.x, account.signer.publicKey.y],
       e: sign.e,
@@ -36,7 +35,6 @@ describe('schnorr', function () {
     const badAccount = randomAccount();
     const badSign = badAccount.sign(message);
     const badInputs = {
-      enabled: 1,
       m: message,
       publicKey: [account.signer.publicKey.x, account.signer.publicKey.y],
       e: badSign.e,

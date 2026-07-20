@@ -1,16 +1,18 @@
 import chai, { assert } from 'chai';
 import chaiAsPromised from 'chai-as-promised';
-import { randomBigInt } from '@zkfi-tech/utils';
+import { randomBigInt } from '@veilnyx-sdk/utils';
 import { MSG_ASSERT_FAILED, getCircuit } from './helpers';
 
 chai.use(chaiAsPromised);
 
+// In-range values are drawn randomly; out-of-range values are pinned to the smallest value
+// above the bound, so the "should be rejected" cases can't draw an in-range number by chance.
 const n64 = randomBigInt(8);
 const n128 = randomBigInt(16);
-const n140 = randomBigInt(20);
-const n192 = randomBigInt(24);
-const n248 = randomBigInt(31);
-const n256 = randomBigInt(32);
+const n140 = 1n << 139n;
+const n192 = 1n << 191n;
+const n248 = (1n << 248n) - 1n;
+const n256 = 1n << 248n;
 
 describe('limitRange', function () {
   it('limits max to 128 bits', async function () {

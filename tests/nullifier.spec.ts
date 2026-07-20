@@ -1,7 +1,9 @@
 import { expect } from 'chai';
-import { randomBigInt } from '@zkfi-tech/utils';
-import { Point, poseidonHash } from '@zkfi-tech/babyjubjub';
-import { getCircuit } from './helpers';
+import { randomBigInt } from '@veilnyx-sdk/utils';
+import { Point, poseidonHash } from '@veilnyx-sdk/babyjubjub';
+import { getCircuit,
+  pointToArray,
+} from './helpers';
 
 describe('nullifier', function () {
   this.timeout(8000);
@@ -18,13 +20,13 @@ describe('nullifier', function () {
       pathIndices,
       viewPrivateKey,
       commitment,
-      revokerPublicKey: revokerPublicKey.toArray(),
+      revokerPublicKey: pointToArray(revokerPublicKey),
     };
 
     const nullifier = poseidonHash([
       pathIndices,
       commitment,
-      revokerPublicKey.mul(viewPrivateKey).x,
+      revokerPublicKey.multiply(viewPrivateKey).x,
     ]);
 
     const witness = await circuit.calculateWitness(inputs);

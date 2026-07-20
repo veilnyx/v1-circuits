@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { randomBigInt, toBigInt } from '@zkfi-tech/utils';
+import { randomBigInt, toBigInt } from '@veilnyx-sdk/utils';
 import { getCircuit } from './helpers';
 import { encodeAsset } from './helpers/asset';
 

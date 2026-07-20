@@ -1,7 +1,9 @@
-import { Point, elGamal, poseidonEncrypt } from '@zkfi-tech/babyjubjub';
-import { randomBigInt } from '@zkfi-tech/utils';
+import { Point, elGamal, poseidonEncrypt } from '@veilnyx-sdk/babyjubjub';
+import { randomBigInt } from '@veilnyx-sdk/utils';
 import { encodeAsset } from './helpers/asset';
-import { createNote, deriveKeys, getCircuit, randomAccount } from './helpers';
+import { createNote, deriveKeys, getCircuit, randomAccount,
+  pointToArray,
+} from './helpers';
 
 const t1: number = 0x010001;
 const t2: number = 0x010002;
@@ -53,7 +55,7 @@ describe('complianceProof', function () {
 
     const inputs = {
       keySeedEncryptionEphemeralKey,
-      keySeedEncryptionPublicKey: keySeedEncryptionPublicKey.toArray(),
+      keySeedEncryptionPublicKey: pointToArray(keySeedEncryptionPublicKey),
       dataEncryptionKeySeed,
       refundData,
       noteData,

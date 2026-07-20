@@ -1,7 +1,9 @@
 import { assert } from 'chai';
-import { Point } from '@zkfi-tech/babyjubjub';
-import { randomBigInt } from '@zkfi-tech/utils';
-import { getCircuit, MSG_ASSERT_FAILED, randomAccount } from './helpers';
+import { Point } from '@veilnyx-sdk/babyjubjub';
+import { randomBigInt } from '@veilnyx-sdk/utils';
+import { getCircuit, MSG_ASSERT_FAILED, randomAccount,
+  pointToArray,
+} from './helpers';
 
 describe('register', function () {
   it('successfully verify well-formed root address', async function () {
@@ -10,8 +12,8 @@ describe('register', function () {
 
     const inputs = {
       rootAddress: acc.rootAddress,
-      signPublicKey: acc.signer.publicKey.toArray(),
-      viewPublicKey: acc.viewer.publicKey.toArray(),
+      signPublicKey: pointToArray(acc.signer.publicKey),
+      viewPublicKey: pointToArray(acc.viewer.publicKey),
       viewPrivateKey: acc.viewer.privateKey,
     };
 
@@ -26,8 +28,8 @@ describe('register', function () {
 
     const inputs = {
       rootAddress: acc.rootAddress,
-      signPublicKey: acc.signer.publicKey.toArray(),
-      viewPublicKey: Point.generate(randomBigInt(31)).toArray(),
+      signPublicKey: pointToArray(acc.signer.publicKey),
+      viewPublicKey: pointToArray(Point.generate(randomBigInt(31))),
       viewPrivateKey: acc.viewer.privateKey,
     };
 

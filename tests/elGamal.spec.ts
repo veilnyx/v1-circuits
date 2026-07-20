@@ -1,7 +1,9 @@
 import { expect } from 'chai';
-import { Point, elGamal } from '@zkfi-tech/babyjubjub';
-import { randomBigInt } from '@zkfi-tech/utils';
-import { getCircuit } from './helpers';
+import { Point, elGamal } from '@veilnyx-sdk/babyjubjub';
+import { randomBigInt } from '@veilnyx-sdk/utils';
+import { getCircuit,
+  pointToArray,
+} from './helpers';
 
 describe('elGamal', () => {
   let circuit1;
@@ -25,8 +27,8 @@ describe('elGamal', () => {
     const c = ciphertext[2];
     const inputs = {
       ephemeralKey,
-      ephemeralPublicKey: ephemeralPublicKey.toArray(),
-      encryptionPublicKey: encryptionPublicKey.toArray(),
+      ephemeralPublicKey: pointToArray(ephemeralPublicKey),
+      encryptionPublicKey: pointToArray(encryptionPublicKey),
       m: message,
     };
 

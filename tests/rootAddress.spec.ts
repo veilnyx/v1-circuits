@@ -1,6 +1,6 @@
-import { poseidonHash } from '@zkfi-tech/babyjubjub';
+import { poseidonHash } from '@veilnyx-sdk/babyjubjub';
 import { getCircuit } from './helpers';
-import { randomBigInt } from '@zkfi-tech/utils';
+import { randomBigInt } from '@veilnyx-sdk/utils';
 import { expect } from 'chai';
 
 describe('rootAddress', function () {

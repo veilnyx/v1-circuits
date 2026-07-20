@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { randomBigInt } from '@zkfi-tech/utils';
+import { randomBigInt } from '@veilnyx-sdk/utils';
 import { getCircuit, getInitialTreeState, insertLeaves, zeroElement } from './helpers';
 
 const treeDepth = 32;

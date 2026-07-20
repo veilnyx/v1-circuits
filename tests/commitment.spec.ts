@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { randomBigInt } from '@zkfi-tech/utils';
-import { poseidonHash } from '@zkfi-tech/babyjubjub';
+import { randomBigInt } from '@veilnyx-sdk/utils';
+import { poseidonHash } from '@veilnyx-sdk/babyjubjub';
 import { getCircuit } from './helpers';
 
 describe('commitment', function () {

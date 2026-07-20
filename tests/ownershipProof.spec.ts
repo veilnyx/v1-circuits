@@ -1,7 +1,9 @@
 import { assert } from 'chai';
-import { randomBigInt } from '@zkfi-tech/utils';
-import { poseidonHash } from '@zkfi-tech/babyjubjub';
-import { MSG_ASSERT_FAILED, getCircuit, randomAccount } from './helpers';
+import { randomBigInt } from '@veilnyx-sdk/utils';
+import { poseidonHash } from '@veilnyx-sdk/babyjubjub';
+import { MSG_ASSERT_FAILED, getCircuit, randomAccount,
+  pointToArray,
+} from './helpers';
 
 describe('ownershipProof', function () {
   this.timeout(8000);
@@ -18,7 +20,7 @@ describe('ownershipProof', function () {
 
     const inputs = {
       hash,
-      publicKey: account.signer.publicKey.toArray(),
+      publicKey: pointToArray(account.signer.publicKey),
       signature: [sign.s, sign.e],
     };
 
@@ -36,7 +38,7 @@ describe('ownershipProof', function () {
 
     const inputs = {
       hash,
-      publicKey: account.signer.publicKey.toArray(),
+      publicKey: pointToArray(account.signer.publicKey),
       signature: [badSign.s, badSign.e],
     };
 
@@ -53,13 +55,13 @@ describe('ownershipProof', function () {
 
     const badCommitmentInputs = {
       hash: badHash,
-      publicKey: account.signer.publicKey.toArray(),
+      publicKey: pointToArray(account.signer.publicKey),
       signature: [badSign.s, badSign.e],
     };
 
     const badPublicKeyInputs = {
       hash,
-      publicKey: badAccount.signer.publicKey.toArray(),
+      publicKey: pointToArray(badAccount.signer.publicKey),
       signature: [sign.s, sign.e],
     };
 
