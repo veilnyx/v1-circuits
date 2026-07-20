@@ -1,5 +1,5 @@
-import { Point, poseidonHash } from '@zkfi-tech/babyjubjub';
-import { randomBigInt } from '@zkfi-tech/utils';
+import { PointType, poseidonHash } from '@veilnyx-sdk/babyjubjub';
+import { randomBigInt } from '@veilnyx-sdk/utils';
 import { Hex } from 'viem';
 
 export type NoteData = {
@@ -11,7 +11,7 @@ export type NoteData = {
   nullifier: bigint;
   blinding: bigint;
   leafIndex: number;
-  revokerPublicKey: Point;
+  revokerPublicKey: PointType;
 };
 
 export const createNote = ({
@@ -27,15 +27,19 @@ export const createNote = ({
   assetId: number;
   blinding?: bigint;
   leafIndex: number;
-  revokerPublicKey: Point;
+  revokerPublicKey: PointType;
 }): NoteData => {
   const r = blinding || randomBigInt(31);
   const owner = BigInt(
     poseidonHash([account.rootAddress, revokerPublicKey.x, revokerPublicKey.y, r]),
   );
-  const commitment = BigInt(poseidonHash([assetId, owner, value]));
+  const commitment = BigInt(poseidonHash([BigInt(assetId), owner, value]));
   const nullifier = BigInt(
-    poseidonHash([leafIndex, commitment, revokerPublicKey.mul(account.viewer.privateKey).x]),
+    poseidonHash([
+      BigInt(leafIndex),
+      commitment,
+      revokerPublicKey.multiply(account.viewer.privateKey).x,
+    ]),
   );
 
   return {

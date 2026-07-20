@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { poseidonHash } from '@zkfi-tech/babyjubjub';
-import { randomBigInt } from '@zkfi-tech/utils';
+import { poseidonHash } from '@veilnyx-sdk/babyjubjub';
+import { randomBigInt } from '@veilnyx-sdk/utils';
 import { getCircuit } from './helpers';
 
 describe('blindedAddress', function () {

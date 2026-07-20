@@ -1,6 +1,8 @@
-import { Point } from '@zkfi-tech/babyjubjub';
-import { randomBigInt } from '@zkfi-tech/utils';
-import { createNote, getCircuit, getMerkleTree, randomAccount } from './helpers';
+import { Point } from '@veilnyx-sdk/babyjubjub';
+import { randomBigInt } from '@veilnyx-sdk/utils';
+import { createNote, getCircuit, getMerkleTree, randomAccount,
+  pointToArray,
+} from './helpers';
 
 const cmTreeDepth = 25;
 const getCmTree = () => getMerkleTree(cmTreeDepth);
@@ -44,8 +46,8 @@ describe('anonymityScore', function () {
       commitmentTreeRoot: cmTree.root,
       assetId,
       viewPrivateKey: sender.viewer.privateKey,
-      signPublicKey: sender.signer.publicKey.toArray(),
-      revokerPublicKeys: notes.map((n) => n.revokerPublicKey.toArray()),
+      signPublicKey: pointToArray(sender.signer.publicKey),
+      revokerPublicKeys: notes.map((n) => pointToArray(n.revokerPublicKey)),
       values: notes.map((n) => n.value),
       blindings: notes.map((n) => n.blinding),
       leafIndices: notes.map((n) => n.leafIndex),

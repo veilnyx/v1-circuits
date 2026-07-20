@@ -1,8 +1,10 @@
 import { assert } from 'chai';
-import { Point, poseidonHash } from '@zkfi-tech/babyjubjub';
-import { getCircuit, randomAccount } from './helpers';
+import { Point, poseidonHash } from '@veilnyx-sdk/babyjubjub';
+import { getCircuit, randomAccount,
+  pointToArray,
+} from './helpers';
 import { MSG_ASSERT_FAILED } from './helpers';
-import { randomBigInt } from '@zkfi-tech/utils';
+import { randomBigInt } from '@veilnyx-sdk/utils';
 
 describe('blindedAddressCheck', function () {
   it('correctly check blindedAddress', async function () {
@@ -19,7 +21,7 @@ describe('blindedAddressCheck', function () {
     ]);
     const inputs = {
       rootAddress,
-      revokerPublicKey: revokerPublicKey.toArray(),
+      revokerPublicKey: pointToArray(revokerPublicKey),
       blinding,
       blindedAddress,
     };
@@ -42,7 +44,7 @@ describe('blindedAddressCheck', function () {
     ]);
     const inputs = {
       rootAddress,
-      revokerPublicKey: revokerPublicKey.toArray(),
+      revokerPublicKey: pointToArray(revokerPublicKey),
       blinding: randomBigInt(31),
       blindedAddress,
     };

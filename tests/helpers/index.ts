@@ -1,13 +1,20 @@
-import { Point, schnorr, Fr, poseidonHash } from '@zkfi-tech/babyjubjub';
+import { Point, PointType, schnorr, fr, poseidonHash } from '@veilnyx-sdk/babyjubjub';
 import { bytesToBigInt, Hex, isHex, padBytes, padHex, sliceBytes, toBytes, toHex } from 'viem';
-import MerkleTree from 'fixed-merkle-tree';
-import { toBigInt } from '@zkfi-tech/utils';
+import MerkleTree, { Element } from 'fixed-merkle-tree';
+import { toBigInt } from '@veilnyx-sdk/utils';
 
+export * from './binding';
 export * from './circuit';
 export * from './note';
 export * from './tree';
 
 export const MSG_ASSERT_FAILED = 'Assert Failed';
+
+/**
+ * Circuits take a curve point as a two-signal array. `@veilnyx-sdk/babyjubjub` exposes the raw
+ * noble-curves point, which has `x`/`y` getters but no array form of its own.
+ */
+export const pointToArray = (p: { x: bigint; y: bigint }): [bigint, bigint] => [p.x, p.y];
 
 export const toPaddedHex = (n: bigint | string | number) => {
   let x: Hex;
@@ -35,7 +42,7 @@ export const deriveKeys = (seed: bigint, n: number) => {
 };
 
 export const getMerkleTree = (depth: number, leaves: bigint[] = [], zeroLeaf?: bigint) => {
-  const hashFunction = (a, b) => {
+  const hashFunction = (a: Element, b: Element) => {
     const hash = poseidonHash([toBigInt(a), toBigInt(b)]);
     return toPaddedHex(hash);
   };
@@ -46,7 +53,7 @@ export const getMerkleTree = (depth: number, leaves: bigint[] = [], zeroLeaf?: b
 };
 
 export const randomKeyPair = () => {
-  const privateKey = Fr.random(31).val;
+  const privateKey = fr.random();
   const publicKey = Point.generate(privateKey);
 
   return {
@@ -69,9 +76,9 @@ export const randomAccount = () => {
     sign(message: bigint) {
       return schnorr.sign(message, signer.privateKey);
     },
-    getBlindedAddress(revokerPublicKey: Point, blinding: bigint | string) {
+    getBlindedAddress(revokerPublicKey: PointType, blinding: bigint | string) {
       return BigInt(
-        poseidonHash([this.rootAddress, revokerPublicKey.x, revokerPublicKey.y, blinding]),
+        poseidonHash([this.rootAddress, revokerPublicKey.x, revokerPublicKey.y, toBigInt(blinding)]),
       );
     },
   };

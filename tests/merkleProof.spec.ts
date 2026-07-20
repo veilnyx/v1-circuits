@@ -1,6 +1,6 @@
 import { assert } from 'chai';
-import { poseidonHash } from '@zkfi-tech/babyjubjub';
-import { randomBigInt } from '@zkfi-tech/utils';
+import { poseidonHash } from '@veilnyx-sdk/babyjubjub';
+import { randomBigInt } from '@veilnyx-sdk/utils';
 import { MSG_ASSERT_FAILED, getCircuit, getMerkleTree, toPaddedHex } from './helpers';
 
 const getTree = () => getMerkleTree(32);

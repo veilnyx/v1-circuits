@@ -1,8 +1,8 @@
 import { assert } from 'chai';
 import { parseEther } from 'viem';
-import { poseidonEncrypt } from '@zkfi-tech/babyjubjub';
-import { Point, elGamal } from '@zkfi-tech/babyjubjub';
-import { randomBigInt } from '@zkfi-tech/utils';
+import { poseidonEncrypt } from '@veilnyx-sdk/babyjubjub';
+import { Point, elGamal } from '@veilnyx-sdk/babyjubjub';
+import { randomBigInt } from '@veilnyx-sdk/utils';
 import {
   NoteData,
   createNote,
@@ -11,6 +11,8 @@ import {
   getMerkleTree,
   randomAccount,
   toPaddedHex,
+  pointToArray,
+  getBindingSignals,
 } from './helpers';
 import { encodeAsset } from './helpers/asset';
 
@@ -76,6 +78,22 @@ describe('transact', function () {
       return poseidonEncrypt(d, dataEncryptionPublicKeys[i], BigInt(0));
     });
 
+    const pubAssetIds = [ft1, ft1];
+    const inNullifiers = inNotes.map((note: any) => note.nullifier);
+    const outCommitments = outNotes.map((note: any) => note.commitment);
+
+    // beta and gamma are constrained in-circuit, so the witness only closes if the test
+    // reproduces the circuit's own folding of the public and encrypted fields.
+    const { alpha, beta, gamma } = getBindingSignals({
+      pubAssetIds,
+      pubValues,
+      inNullifiers,
+      outCommitments,
+      encryptedDataEncryptionKeySeed,
+      encryptedRefundData,
+      encryptedNoteData,
+    });
+
     const inputs = {
       commitmentTreeRoot: commitmentsTree.root.toString(),
       hash,
@@ -88,35 +106,38 @@ describe('transact', function () {
         .pathElements.map((x) => BigInt(x)),
       // public
       pubFlow,
-      pubAssetIds: [ft1, ft1],
+      pubAssetIds,
       pubValues: pubValues,
       // ins
       inViewPrivateKey: sender.viewer.privateKey,
-      inSignPublicKey: sender.signer.publicKey.toArray(),
-      inRevokerPublicKeys: inNotes.map(() => revokerPublicKey.toArray()),
+      inSignPublicKey: pointToArray(sender.signer.publicKey),
+      inRevokerPublicKeys: inNotes.map(() => pointToArray(revokerPublicKey)),
       inAssetIds: inNotes.map((note: any) => note.assetId),
       inValues: inNotes.map((note: any) => note.value),
       inBlindings: inNotes.map((note: any) => note.blinding),
-      inNullifiers: inNotes.map((note: any) => note.nullifier),
+      inNullifiers,
       inPathIndices: inNotes.map((n) => n.leafIndex),
       inPathElements: inNotes.map((n) => commitmentsTree.path(n.leafIndex).pathElements),
       // outs
-      outRevokerPublicKey: revokerPublicKey.toArray(),
+      outRevokerPublicKey: pointToArray(revokerPublicKey),
       outAssetIds: outNotes.map((note: any) => note.assetId),
       outRootAddresses: outNotes.map((note: any) => note.rootAddress),
       outValues: outNotes.map((note: any) => note.value),
       outBlindings: outNotes.map((note: any) => note.blinding),
-      outCommitments: outNotes.map((note: any) => note.commitment),
+      outCommitments,
       // refund address
       refundAddress,
       refundAddressBlinding,
       // encryptions
       keySeedEncryptionEphemeralKey,
-      keySeedEncryptionPublicKey: keySeedEncryptionPublicKey.toArray(),
+      keySeedEncryptionPublicKey: pointToArray(keySeedEncryptionPublicKey),
       dataEncryptionKeySeed,
       encryptedDataEncryptionKeySeed,
       encryptedRefundData,
       encryptedNoteData,
+      alpha,
+      beta,
+      gamma,
     };
 
     return inputs;

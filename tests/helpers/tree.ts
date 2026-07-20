@@ -1,4 +1,4 @@
-import { Fp, poseidonHash } from '@zkfi-tech/babyjubjub';
+import { fp, poseidonHash } from '@veilnyx-sdk/babyjubjub';
 import { keccak256, stringToBytes } from 'viem';
 
 export type MerkleTreeState = {
@@ -9,7 +9,7 @@ export type MerkleTreeState = {
   zeros: bigint[];
 };
 
-export const zeroElement = Fp.from(BigInt(keccak256(stringToBytes('zero')))).val;
+export const zeroElement = fp.create(BigInt(keccak256(stringToBytes('zero'))));
 
 export const getInitialTreeState = (depth: number): MerkleTreeState => {
   let z = BigInt(zeroElement);

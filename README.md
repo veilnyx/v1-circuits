@@ -67,8 +67,18 @@ key and the signature — is private.
 |---|---|---|
 | `register` | `Register()` | A root address was correctly derived from a signing key + view key, and the published view public key matches the view private key. Gates entry into the address tree. |
 | `treeUpdate` | `TreeUpdate(25, 10)` | A batch of 10 leaves was correctly appended to the commitment tree, with subtree state updated and zero-padding accounted for. Used by `QueuedMerkleTree.sol` to move insertion cost off-chain. |
-| `linkTx` | `LinkTx(32, 1)` | A nullifier revealed in the current tx corresponds to a commitment that is a member of a given association set root. Lets a user voluntarily prove provenance. |
+| `linkTx` | `LinkTx(32, 1)` | A nullifier revealed in the current tx corresponds to a commitment that is a member of a given association set root. Lets a user voluntarily prove provenance. **Does not compile** — see below. |
 | `anonymityScore` | `AnonymityScore(25, 8)` | Ownership of up to 8 notes of one asset and their relationship to a claimed anonymity score. |
+
+#### Known break: `linkTx`
+
+`circuits/lib/linkTx.circom` does not compile. Line 53 wires `nullifierHasher[i].blinding`, but
+`Nullifier()` has had no `blinding` input since the nullifier was redefined for multi-revoker
+support (`c347292`, `790eef6`) — it now takes `pathIndices`, `commitment`, `viewPrivateKey` and
+`revokerPublicKey[2]`. `LinkTx` declares neither key input, so repairing it means deciding how the
+association-set nullifier should be derived and extending the template's signal layout. That is a
+protocol decision, so it is left open rather than guessed at; `tests/linkTx.spec.ts` fails until
+it is made.
 
 ### Library templates
 
@@ -98,9 +108,12 @@ Specs run against the mock circuits in `tests/mocks/` using `circom_tester`, whi
 each mock on demand into `.tmp/` — no prebuilt artifacts needed.
 
 ```bash
-pnpm test                                        # everything
-pnpm exec ts-mocha -p tsconfig.json tests/transact.spec.ts   # one spec
+pnpm test                          # everything
+pnpm test -- tests/transact.spec.ts   # one spec
 ```
+
+> `linkTx` is currently expected to fail: `circuits/lib/linkTx.circom` does not compile
+> (see below). Every other spec passes.
 
 ## Building a circuit
 
