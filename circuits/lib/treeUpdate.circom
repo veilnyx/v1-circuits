@@ -1,9 +1,13 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2026 Gelbfeld AG. Licensed under the GNU General Public License v3.0.
+// See /licenses/GPL_LICENSE. Portions derived from GPL-3.0 works; see /LICENSE.
+
 pragma circom 2.1.5;
 
 include "../../node_modules/circomlib/circuits/bitify.circom";
 include "../../node_modules/circomlib/circuits/poseidon.circom";
 include "../../node_modules/circomlib/circuits/switcher.circom";
-include "../../node_modules/circomlib/circuits/mux.circom";
+include "../../node_modules/circomlib/circuits/multiplexer.circom";
 include "./utils.circom";
 
 template TreeUpdate(nLevels, nLeaves) {
@@ -47,22 +51,23 @@ template TreeUpdate(nLevels, nLeaves) {
     // using Multiplexer for efficient binary tree selection
     signal zeroLeafStart <== nLeaves - nZeroLeaves;
     
-    component muxRoot = Multiplexer(nLeaves + 1, 8);
-    muxRoot.index <== zeroLeafStart;
+    component muxRoot = Multiplexer(1, nLeaves + 1);
+    muxRoot.sel <== zeroLeafStart;
     for (var i = 0; i < nLeaves + 1; i++) {
-        muxRoot.inputs[i] <== intermediaryRoots[i];
+        muxRoot.inp[i][0] <== intermediaryRoots[i];
     }
-    muxRoot.out === newRoot;
+    muxRoot.out[0] === newRoot;
 
     // Select subtree values at which last non-zero leaf was inserted
-    component muxSubtrees[nLevels];
-    for (var i = 0; i < nLevels; i++) {
-        muxSubtrees[i] = Multiplexer(nLeaves + 1, 8);
-        muxSubtrees[i].index <== zeroLeafStart;
-        for (var j = 0; j < nLeaves + 1; j++) {
-            muxSubtrees[i].inputs[j] <== intermediarySubtrees[j][i];
+    component muxSubtrees = Multiplexer(nLevels, nLeaves + 1);
+    muxSubtrees.sel <== zeroLeafStart;
+    for (var i = 0; i < nLeaves + 1; i++) {
+        for (var j = 0; j < nLevels; j++) {
+            muxSubtrees.inp[i][j] <== intermediarySubtrees[i][j];
         }
-        muxSubtrees[i].out === newSubtrees[i];
+    }
+    for (var j = 0; j < nLevels; j++) {
+        muxSubtrees.out[j] === newSubtrees[j];
     }
 }
 

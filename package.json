@@ -2,7 +2,7 @@
   "name": "v1-circuits",
   "version": "1.0.0",
   "description": "Circom circuits for zkFi v1",
-  "license": "ISC",
+  "license": "SEE LICENSE IN LICENSE",
   "author": "Naveen Sahu",
   "scripts": {
     "compile": "ts-node ./scripts/compile.ts",
