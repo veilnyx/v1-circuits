@@ -9,6 +9,7 @@ include "../../node_modules/circomlib/circuits/compconstant.circom";
 include "../../node_modules/circomlib/circuits/escalarmulany.circom";
 include "../../node_modules/circomlib/circuits/poseidon.circom";
 include "./constants.circom";
+include "./ecc.circom";
 
 // Using encoding free hashed el gamal encryption that uses addition
 // See: https://www.di.ens.fr/david.pointcheval/Documents/Papers/2006_pkcC.pdf
@@ -46,6 +47,9 @@ template ElGamalEncrypt() {
     ephemeralPublicKey === ephemeralKeyMulG.out;
 
     // Calculate r.P
+    component validateEncryptionPk = ValidatePoint();
+    validateEncryptionPk.point <== encryptionPublicKey;
+
     component ephemeralKeyMulP = EscalarMulAny(254);
     ephemeralKeyMulP.e <== ephemeralKeyBits.out;
     ephemeralKeyMulP.p <== encryptionPublicKey;
