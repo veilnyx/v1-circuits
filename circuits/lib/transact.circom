@@ -137,6 +137,17 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
         limitRange[i].in <== outValues[i];
     }
 
+    // Limit public values to be within 224 bits.
+    // Without this, a public value could be chosen near the field modulus so that
+    // the zero-sum sums wrap around, faking conservation. `pubAssetIds` needs no
+    // explicit range check: the `IsFungible`/`IsNonFungible` components below run
+    // `Num2Bits(24)` over it, which is unsatisfiable above 2^24.
+    component limitRangePub[nOuts];
+    for (var i = 0; i < nOuts; i++) {
+        limitRangePub[i] = LimitRange(MAX_BITS_VALUE);
+        limitRangePub[i].in <== pubValues[i];
+    }
+
     component outBlindedAddresses[nOuts];
     for (var i = 0; i < nOuts; i++) {
         outBlindedAddresses[i] = BlindedAddress();
@@ -184,6 +195,28 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
         outZeroSumFungible[i].pubAssetIds <== pubAssetIds;
     }
 
+    // Assert that total value of each publicly moved fungible asset is conserved.
+    //
+    // The in/out components above are keyed on `inAssetIds` and `outAssetIds` only,
+    // so the set of asset ids ever checked was exactly {inAssetIds} u {outAssetIds}.
+    // An asset appearing ONLY in `pubAssetIds` had no component keyed on it and its
+    // public value was therefore entirely unconstrained: a transaction carrying
+    // nothing but dummy notes could authorise an arbitrary withdrawal. Keying on
+    // `pubAssetIds` closes that gap. It is redundant whenever the asset also appears
+    // in a note, and load-bearing when it does not.
+    component pubZeroSumFungible[nOuts];
+    for (var i = 0; i < nOuts; i++) {
+        pubZeroSumFungible[i] = ZeroSumFungible(nIns, nOuts);
+        pubZeroSumFungible[i].pubFlow <== pubFlow;
+        pubZeroSumFungible[i].assetId <== pubAssetIds[i];
+        pubZeroSumFungible[i].inAssetIds <== inAssetIds;
+        pubZeroSumFungible[i].inValues <== inValues;
+        pubZeroSumFungible[i].outAssetIds <== outAssetIds;
+        pubZeroSumFungible[i].outValues <== outValues;
+        pubZeroSumFungible[i].pubValues <== pubValues;
+        pubZeroSumFungible[i].pubAssetIds <== pubAssetIds;
+    }
+
     // Assert that count of each non-fungible (ERC721) asset in inputs are conserved
     component inZeroSumNonFungible[nIns];
     for (var i = 0; i < nIns; i++) {
@@ -212,6 +245,22 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
         outZeroSumNonFungible[i].outValues <== outValues;
         outZeroSumNonFungible[i].pubValues <== pubValues;
         outZeroSumNonFungible[i].pubAssetIds <== pubAssetIds;
+    }
+
+    // Same gap as above, for the non-fungible path: an NFT moved only publicly had
+    // no count component keyed on its asset id.
+    component pubZeroSumNonFungible[nOuts];
+    for (var i = 0; i < nOuts; i++) {
+        pubZeroSumNonFungible[i] = ZeroSumNonFungible(nIns, nOuts);
+        pubZeroSumNonFungible[i].pubFlow <== pubFlow;
+        pubZeroSumNonFungible[i].assetId <== pubAssetIds[i];
+        pubZeroSumNonFungible[i].nftId <== pubValues[i];
+        pubZeroSumNonFungible[i].inAssetIds <== inAssetIds;
+        pubZeroSumNonFungible[i].inValues <== inValues;
+        pubZeroSumNonFungible[i].outAssetIds <== outAssetIds;
+        pubZeroSumNonFungible[i].outValues <== outValues;
+        pubZeroSumNonFungible[i].pubValues <== pubValues;
+        pubZeroSumNonFungible[i].pubAssetIds <== pubAssetIds;
     }
 
     // Refund blinded address check
