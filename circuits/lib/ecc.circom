@@ -78,6 +78,13 @@ template PointMul() {
     comp.in <== scalarBits.out;
     comp.out === 0;
 
+    // Assert scalar != 0. EscalarMulAny returns the identity for a zero scalar
+    // regardless of the base, so a zero scalar collapses the result to a
+    // constant in exactly the same way an invalid base point does.
+    component scalarIsZero = IsZero();
+    scalarIsZero.in <== scalar;
+    scalarIsZero.out === 0;
+
     component mul = EscalarMulAny(254);
     mul.e <== scalarBits.out;
     mul.p <== point;

@@ -69,6 +69,14 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
 
     var MAX_BITS_VALUE = GetMaxBitValue();
 
+    // pubFlow selects the direction of the public flow and is used as a mux
+    // selector in both zero-sum templates (s*a + (1-s)*b). Those templates only
+    // ASSUMED it was boolean. Left free, the conservation constraint collapses to
+    // outSum = inSum + (1 - 2*pubFlow)*pubSum, which is solvable for pubFlow for
+    // any desired imbalance whenever pubSum != 0. The contract currently supplies
+    // a hardcoded 0 or 1, but the circuit must not depend on that.
+    pubFlow * (pubFlow - 1) === 0;
+
     // Calculate address
     component inRootAddress = RootAddress();
     inRootAddress.signPublicKey <== inSignPublicKey;

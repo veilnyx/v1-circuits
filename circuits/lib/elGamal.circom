@@ -47,6 +47,13 @@ template ElGamalEncrypt() {
     ephemeralPublicKey === ephemeralKeyMulG.out;
 
     // Calculate r.P
+    // Assert the ephemeral key is non-zero: r = 0 makes the shared secret the
+    // public constant Poseidon(0, 1), so the ciphertext
+    // m + Poseidon(0,1) reveals m to anyone reading calldata.
+    component ephemeralKeyIsZero = IsZero();
+    ephemeralKeyIsZero.in <== ephemeralKey;
+    ephemeralKeyIsZero.out === 0;
+
     component validateEncryptionPk = ValidatePoint();
     validateEncryptionPk.point <== encryptionPublicKey;
 
