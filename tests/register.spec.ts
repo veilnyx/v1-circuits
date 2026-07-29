@@ -15,6 +15,8 @@ describe('register', function () {
       signPublicKey: pointToArray(acc.signer.publicKey),
       viewPublicKey: pointToArray(acc.viewer.publicKey),
       viewPrivateKey: acc.viewer.privateKey,
+      // Binds the proof to the registrant; see register.circom.
+      publicAddress: BigInt('0xCD1722F3947DEf4Cf144679Da39c4c32BDC35681'),
     };
 
     assert.isFulfilled(circuit.calculateWitness(inputs, true));
@@ -31,6 +33,7 @@ describe('register', function () {
       signPublicKey: pointToArray(acc.signer.publicKey),
       viewPublicKey: pointToArray(Point.generate(randomBigInt(31))),
       viewPrivateKey: acc.viewer.privateKey,
+      publicAddress: BigInt('0xCD1722F3947DEf4Cf144679Da39c4c32BDC35681'),
     };
 
     assert.isRejected(circuit.calculateWitness(inputs, true), MSG_ASSERT_FAILED);

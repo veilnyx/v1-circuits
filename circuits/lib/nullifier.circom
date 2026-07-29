@@ -16,6 +16,9 @@ template Nullifier() {
     signal output out;
 
     // Calc v.P (@todo Optimize since we only utilize the x coordinate?)
+    component validateRevokerPk = ValidatePoint();
+    validateRevokerPk.point <== revokerPublicKey;
+
     component vkMulP = PointMul();
     vkMulP.scalar <== viewPrivateKey;
     vkMulP.point <== revokerPublicKey;

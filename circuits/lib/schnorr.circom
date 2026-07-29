@@ -10,6 +10,7 @@ include "../../node_modules/circomlib/circuits/poseidon.circom";
 include "../../node_modules/circomlib/circuits/bitify.circom";
 include "../../node_modules/circomlib/circuits/escalarmulany.circom";
 include "./constants.circom";
+include "./ecc.circom";
 
 template SchnorrVerify() { 
     // Message
@@ -42,6 +43,9 @@ template SchnorrVerify() {
     sMulG.p <== BASE8;
 
     // Calculate e.P
+    component validatePk = ValidatePoint();
+    validatePk.point <== publicKey;
+
     component eMulP = EscalarMulAny(254);
     eMulP.e <== ebits.out;
     eMulP.p <== publicKey;
