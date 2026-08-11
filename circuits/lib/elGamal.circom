@@ -9,6 +9,7 @@ include "../../node_modules/circomlib/circuits/compconstant.circom";
 include "../../node_modules/circomlib/circuits/escalarmulany.circom";
 include "../../node_modules/circomlib/circuits/poseidon.circom";
 include "./constants.circom";
+include "./ecc.circom";
 
 // Using encoding free hashed el gamal encryption that uses addition
 // See: https://www.di.ens.fr/david.pointcheval/Documents/Papers/2006_pkcC.pdf
@@ -46,6 +47,16 @@ template ElGamalEncrypt() {
     ephemeralPublicKey === ephemeralKeyMulG.out;
 
     // Calculate r.P
+    // Assert the ephemeral key is non-zero: r = 0 makes the shared secret the
+    // public constant Poseidon(0, 1), so the ciphertext
+    // m + Poseidon(0,1) reveals m to anyone reading calldata.
+    component ephemeralKeyIsZero = IsZero();
+    ephemeralKeyIsZero.in <== ephemeralKey;
+    ephemeralKeyIsZero.out === 0;
+
+    component validateEncryptionPk = ValidatePoint();
+    validateEncryptionPk.point <== encryptionPublicKey;
+
     component ephemeralKeyMulP = EscalarMulAny(254);
     ephemeralKeyMulP.e <== ephemeralKeyBits.out;
     ephemeralKeyMulP.p <== encryptionPublicKey;
