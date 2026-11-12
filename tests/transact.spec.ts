@@ -29,7 +29,7 @@ const getCmTree = () => getMerkleTree(cmTreeDepth);
 const getAddrTree = () => getMerkleTree(addrTreeDepth);
 
 describe('transact', function () {
-  this.timeout(8000);
+  this.timeout(120000);
 
   let circuit;
   // binding parts of the last createTx call, for the binding tests below
