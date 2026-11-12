@@ -287,7 +287,17 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     }
 
     // Preparing inputs for UHF
-    // Merging all encrypted inputs in a single array
+    // Merging all bound inputs in a single array. The header (9 elements) carries
+    // the values that used to be separate public inputs; they are now private and
+    // bound to the proof only through alpha/beta/gamma, which cuts the verifier's
+    // public inputs from 12 to 3.
+    //
+    // The header MUST enter both chains: beta (Poseidon, below) and the on-chain
+    // sha256 alpha. A value present in alpha only could be solved for linearly in
+    // gamma, because r = alpha + beta would not depend on it.
+    //
+    // header: addressTreeRoot, commitmentTreeRoot, hash, pubFlow,
+    //         outRevokerPublicKey[2], refundAddress, keySeedEncryptionPublicKey[2]
     // pubAssetIds: nOut elements
     // pubValues: nOut elements
     // inNullifiers: nIns elements
@@ -296,9 +306,22 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     // encryptedRefundData: 4 elements
     // encryptedNoteData: nOut * 4 elements // each `encryptedNoteData` is of length 4
 
-    var encryptedInputCount = nOuts + nOuts + nIns + nOuts + 3 + 4 + nOuts * 4;
+    var HEADER_COUNT = 9;
+    var encryptedInputCount = HEADER_COUNT + nOuts + nOuts + nIns + nOuts + 3 + 4 + nOuts * 4;
     signal encryptedInputs[encryptedInputCount];
     var counter = 0;
+
+    // Pushing the header
+    encryptedInputs[0] <== addressTreeRoot;
+    encryptedInputs[1] <== commitmentTreeRoot;
+    encryptedInputs[2] <== hash;
+    encryptedInputs[3] <== pubFlow;
+    encryptedInputs[4] <== outRevokerPublicKey[0];
+    encryptedInputs[5] <== outRevokerPublicKey[1];
+    encryptedInputs[6] <== refundAddress;
+    encryptedInputs[7] <== keySeedEncryptionPublicKey[0];
+    encryptedInputs[8] <== keySeedEncryptionPublicKey[1];
+    counter = HEADER_COUNT;
 
     // Pushing pubAssetIds
     for(var i = 0; i < nOuts; i++) {

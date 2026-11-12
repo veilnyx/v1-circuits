@@ -13,12 +13,47 @@ import { sha256, toHex, concatHex, padHex } from 'viem';
 const FIELD_MODULUS =
   21888242871839275222246405745257275088548364400416034343698204186575808495617n;
 
+/** The 9 values that used to be separate public inputs, in the order transact.circom folds them. */
+export type BindingHeader = {
+  addressTreeRoot: bigint | string | number;
+  commitmentTreeRoot: bigint | string | number;
+  hash: bigint | string | number;
+  pubFlow: bigint | number;
+  outRevokerPublicKey: (bigint | number)[];
+  refundAddress: bigint | string | number;
+  keySeedEncryptionPublicKey: (bigint | number)[];
+};
+
+export const getHeader = (h: BindingHeader): bigint[] =>
+  [
+    h.addressTreeRoot,
+    h.commitmentTreeRoot,
+    h.hash,
+    h.pubFlow,
+    ...h.outRevokerPublicKey,
+    h.refundAddress,
+    ...h.keySeedEncryptionPublicKey,
+  ].map((x) => BigInt(x));
+
+export const HEADER_LABELS = [
+  'addressTreeRoot',
+  'commitmentTreeRoot',
+  'hash',
+  'pubFlow',
+  'outRevokerPublicKey.x',
+  'outRevokerPublicKey.y',
+  'refundAddress',
+  'keySeedEncryptionPublicKey.x',
+  'keySeedEncryptionPublicKey.y',
+];
+
 /**
  * Assemble `encryptedInputs` in exactly the order transact.circom pushes onto it:
- * pubAssetIds, pubValues, inNullifiers, outCommitments, encryptedDataEncryptionKeySeed,
- * encryptedRefundData, then each encryptedNoteData row.
+ * the 9-element header, pubAssetIds, pubValues, inNullifiers, outCommitments,
+ * encryptedDataEncryptionKeySeed, encryptedRefundData, then each encryptedNoteData row.
  */
 export const getEncryptedInputs = ({
+  header,
   pubAssetIds,
   pubValues,
   inNullifiers,
@@ -27,6 +62,7 @@ export const getEncryptedInputs = ({
   encryptedRefundData,
   encryptedNoteData,
 }: {
+  header: BindingHeader;
   pubAssetIds: (bigint | number)[];
   pubValues: (bigint | number)[];
   inNullifiers: (bigint | number)[];
@@ -36,6 +72,7 @@ export const getEncryptedInputs = ({
   encryptedNoteData: (bigint | number)[][];
 }): bigint[] =>
   [
+    ...getHeader(header),
     ...pubAssetIds,
     ...pubValues,
     ...inNullifiers,

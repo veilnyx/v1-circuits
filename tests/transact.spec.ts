@@ -13,6 +13,11 @@ import {
   toPaddedHex,
   pointToArray,
   getBindingSignals,
+  getEncryptedInputs,
+  getAlpha,
+  getBeta,
+  getGamma,
+  HEADER_LABELS,
 } from './helpers';
 import { encodeAsset } from './helpers/asset';
 
@@ -27,6 +32,8 @@ describe('transact', function () {
   this.timeout(8000);
 
   let circuit;
+  // binding parts of the last createTx call, for the binding tests below
+  let lastParts: Parameters<typeof getEncryptedInputs>[0];
   const sender = randomAccount();
   const receiver = randomAccount();
   const revokerPublicKey = Point.generate(randomBigInt(31));
@@ -84,7 +91,16 @@ describe('transact', function () {
 
     // beta and gamma are constrained in-circuit, so the witness only closes if the test
     // reproduces the circuit's own folding of the public and encrypted fields.
-    const { alpha, beta, gamma } = getBindingSignals({
+    lastParts = {
+      header: {
+        addressTreeRoot: addressTree.root.toString(),
+        commitmentTreeRoot: commitmentsTree.root.toString(),
+        hash,
+        pubFlow,
+        outRevokerPublicKey: pointToArray(revokerPublicKey),
+        refundAddress,
+        keySeedEncryptionPublicKey: pointToArray(keySeedEncryptionPublicKey),
+      },
       pubAssetIds,
       pubValues,
       inNullifiers,
@@ -92,7 +108,8 @@ describe('transact', function () {
       encryptedDataEncryptionKeySeed,
       encryptedRefundData,
       encryptedNoteData,
-    });
+    };
+    const { alpha, beta, gamma } = getBindingSignals(lastParts);
 
     const inputs = {
       commitmentTreeRoot: commitmentsTree.root.toString(),
@@ -291,5 +308,42 @@ describe('transact', function () {
     ];
     const inputs = createTx({ pubFlow, inNotes, outNotes, pubValues });
     await assert.isFulfilled(circuit.calculateWitness(inputs, true));
+  });
+
+  describe('binding of the folded public inputs', function () {
+    // The 9 header values are private now. The contract computes alpha and gamma from ITS
+    // values (calldata, storage, revoker registry); the prover supplies beta. A prover holding
+    // a witness for a different header value must not be able to satisfy gamma.
+    const transfer = () => {
+      const inNotes = [0, 1].map((leafIndex) =>
+        createNote({ account: sender, revokerPublicKey, value: eth(10), assetId: ft1, leafIndex }),
+      );
+      const outNotes = [2, 3].map((leafIndex) =>
+        createNote({ account: receiver, revokerPublicKey, value: eth(10), assetId: ft1, leafIndex }),
+      );
+      return createTx({ pubFlow: 1, inNotes, outNotes, pubValues: [eth(0), eth(0)] });
+    };
+
+    HEADER_LABELS.forEach((label, k) => {
+      it(`rejects a proof whose ${label} differs from the contract's value`, async function () {
+        const inputs = transfer();
+        const proverD = getEncryptedInputs(lastParts);
+        const contractD = [...proverD];
+        contractD[k] = contractD[k] + 1n;
+
+        const beta = getBeta(proverD); // the circuit forces beta = Poseidon(prover's D)
+        const alpha = getAlpha(contractD); // computed on-chain
+        const gamma = getGamma(contractD, alpha, beta); // computed on-chain
+
+        await assert.isRejected(circuit.calculateWitness({ ...inputs, alpha, beta, gamma }, true));
+
+        // control: the same alpha with the prover's own gamma closes, so the rejection
+        // above comes from the header mismatch alone
+        const ownGamma = getGamma(proverD, alpha, beta);
+        await assert.isFulfilled(
+          circuit.calculateWitness({ ...inputs, alpha, beta, gamma: ownGamma }, true),
+        );
+      });
+    });
   });
 });

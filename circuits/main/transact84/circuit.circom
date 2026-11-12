@@ -6,15 +6,8 @@ pragma circom 2.1.6;
 
 include "../../lib/transact.circom";
 
-component main { public [ 
-    addressTreeRoot,                        // len: 1
-    commitmentTreeRoot,                     // len: 1
-    hash,                                   // len: 1
-    pubFlow,                                // len: 1
-    outRevokerPublicKey,                    // len: 2
-    refundAddress,                          // len: 1
-    keySeedEncryptionPublicKey,             // len: 2
+component main { public [
     alpha,                                  // len: 1
     beta,                                   // len: 1
     gamma                                   // len: 1
-]} = Transact(20, 25, 8, 4);                // total: 12
+]} = Transact(20, 25, 8, 4);                // total PI: 3
