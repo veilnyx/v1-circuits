@@ -9,26 +9,45 @@ include "../../node_modules/circomlib/circuits/poseidon.circom";
 include "../../node_modules/circomlib/circuits/switcher.circom";
 include "../../node_modules/circomlib/circuits/multiplexer.circom";
 include "./utils.circom";
+include "./sha256Fields.circom";
 
+// Batch insertion of `nLeaves` leaves at `leafIndex`.
+//
+// HyperEVM repriced the BN254 precompiles 10x, so the 64 values this circuit used to
+// take as public inputs are bound through ONE public input:
+//
+//   inputsHash = sha256(leafIndex || leaves[nLeaves] || lastRoot || newRoot || nZeroLeaves) mod p
+//
+// which the contract computes from storage (leafIndex, leaves, lastRoot, nZeroLeaves) and
+// calldata (newRoot). The subtrees are no longer public. `lastSubtrees` is a private
+// witness bound to `lastRoot` here: re-inserting the empty leaf at `leafIndex` over
+// `lastSubtrees` must reproduce `lastRoot`. That pins every subtree the insertion reads
+// (levels where bit i of leafIndex is 1); the others are overwritten before any later
+// insertion reads them. Hashing the 50 subtrees instead would cost ~1.09M constraints.
 template TreeUpdate(nLevels, nLeaves) {
+    signal input inputsHash;
+
     signal input leafIndex;
     signal input leaves[nLeaves];
     signal input lastRoot;
     signal input lastSubtrees[nLevels];
     signal input newRoot;
 
-    // Subtrees state up to which non-zero leafs were inserted
-    // If `leaves` is padded with zero leafs, the insertion of these zero-leafs
-    // does not affect whole merkle tree state i.e. root remains same. But the subtree 
-    // elements are updated.
-    signal input newSubtrees[nLevels];
-
     // Number of zero leaves used to pad to batch size (nLeaves)
     signal input nZeroLeaves;
 
+    // Bind lastSubtrees to lastRoot: the frontier at leafIndex must hash to lastRoot.
+    // ZERO_LEAF = keccak256("zero") mod p, the tree's empty leaf (InsertLeaf.ZEROES[0]).
+    component frontier = InsertLeaf(nLevels);
+    frontier.leafIndex <== leafIndex;
+    frontier.leaf <== 18632411485870166338768840581683239832943220854620341531184981674745539224232;
+    frontier.lastRoot <== lastRoot;
+    frontier.lastSubtrees <== lastSubtrees;
+    frontier.newRoot === lastRoot;
+
     signal intermediaryRoots[nLeaves + 1];
     intermediaryRoots[0] <== lastRoot;
-    
+
     signal intermediarySubtrees[nLeaves + 1][nLevels];
     intermediarySubtrees[0] <== lastSubtrees;
 
@@ -44,13 +63,12 @@ template TreeUpdate(nLevels, nLeaves) {
         intermediarySubtrees[i + 1] <== treeInsertions[i].newSubtrees;
     }
 
+    // Padding with the empty leaf leaves the root unchanged, so the final root and the
+    // root after the last real leaf must both equal newRoot.
     newRoot === intermediaryRoots[nLeaves];
 
-
-    // Select root and subtree values at the point when last non-zero leaf was inserted
-    // using Multiplexer for efficient binary tree selection
     signal zeroLeafStart <== nLeaves - nZeroLeaves;
-    
+
     component muxRoot = Multiplexer(1, nLeaves + 1);
     muxRoot.sel <== zeroLeafStart;
     for (var i = 0; i < nLeaves + 1; i++) {
@@ -58,17 +76,16 @@ template TreeUpdate(nLevels, nLeaves) {
     }
     muxRoot.out[0] === newRoot;
 
-    // Select subtree values at which last non-zero leaf was inserted
-    component muxSubtrees = Multiplexer(nLevels, nLeaves + 1);
-    muxSubtrees.sel <== zeroLeafStart;
-    for (var i = 0; i < nLeaves + 1; i++) {
-        for (var j = 0; j < nLevels; j++) {
-            muxSubtrees.inp[i][j] <== intermediarySubtrees[i][j];
-        }
+    // The single public input
+    component inputsHasher = Sha256Fields(nLeaves + 4);
+    inputsHasher.in[0] <== leafIndex;
+    for (var i = 0; i < nLeaves; i++) {
+        inputsHasher.in[1 + i] <== leaves[i];
     }
-    for (var j = 0; j < nLevels; j++) {
-        muxSubtrees.out[j] === newSubtrees[j];
-    }
+    inputsHasher.in[nLeaves + 1] <== lastRoot;
+    inputsHasher.in[nLeaves + 2] <== newRoot;
+    inputsHasher.in[nLeaves + 3] <== nZeroLeaves;
+    inputsHasher.out === inputsHash;
 }
 
 template InsertLeaf(nLevels) {
