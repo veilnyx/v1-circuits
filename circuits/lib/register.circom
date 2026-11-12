@@ -8,6 +8,7 @@ include "../../node_modules/circomlib/circuits/compconstant.circom";
 include "../../node_modules/circomlib/circuits/escalarmulany.circom";
 include "./address.circom";
 include "./ecc.circom";
+include "./sha256Fields.circom";
 
 template Register() {
     signal input rootAddress;
@@ -16,21 +17,24 @@ template Register() {
     signal input viewPrivateKey;
 
     // The Ethereum address that will own this registration. The proof carries no
-    // secret about it and proves nothing about it -- it is declared public purely
-    // so the proof is BOUND to one registrant.
-    //
-    // Without it the proof commits only to (rootAddress, signPublicKey,
-    // viewPublicKey), and the EIP-712 struct it is submitted with
-    // (RegisterAddress(string message, bytes shieldedAddress)) names no signer
-    // either. Anyone observing a registration in the mempool could therefore
-    // re-sign the same shieldedAddress with their own key and front-run it,
-    // permanently binding the victim's rootAddress to an address of their
-    // choosing. That binding is what decom resolves a decrypted note to, so a
-    // hijacked registration silently redirects the final step of deanonymisation.
-    //
-    // Squared so the signal cannot be optimised out of the constraint system.
+    // secret about it and proves nothing about it -- it is bound purely so the
+    // proof belongs to one registrant (front-running protection, see git history).
     signal input publicAddress;
-    signal publicAddressSquared <== publicAddress * publicAddress;
+
+    // The single public input. HyperEVM repriced the BN254 precompiles 10x, so the
+    // six values above are hashed into one instead of being six public inputs:
+    //   inputsHash = sha256(rootAddress || signPublicKey || viewPublicKey || publicAddress) mod p
+    // which the contract computes as
+    //   sha256(abi.encodePacked(shieldedAddress, uint256(uint160(publicAddress)))) % FIELD_SIZE.
+    signal input inputsHash;
+    component inputsHasher = Sha256Fields(6);
+    inputsHasher.in[0] <== rootAddress;
+    inputsHasher.in[1] <== signPublicKey[0];
+    inputsHasher.in[2] <== signPublicKey[1];
+    inputsHasher.in[3] <== viewPublicKey[0];
+    inputsHasher.in[4] <== viewPublicKey[1];
+    inputsHasher.in[5] <== publicAddress;
+    inputsHasher.out === inputsHash;
 
     // Caclulate viewPublicKey and constrain it
     component vkMulG = PrivateKeyToPublicKey();

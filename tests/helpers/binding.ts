@@ -115,3 +115,6 @@ export const getBindingSignals = (parts: Parameters<typeof getEncryptedInputs>[0
   const gamma = getGamma(encryptedInputs, alpha, beta);
   return { alpha, beta, gamma };
 };
+
+/** uint256(sha256(abi.encodePacked(words))) mod p, as Sha256Fields computes it. */
+export const sha256Fields = (words: (bigint | number | string)[]): bigint => getAlpha(words.map((x) => BigInt(x)));
