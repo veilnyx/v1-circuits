@@ -126,12 +126,34 @@ template Transact(addrTreeDepth, cmTreeDepth, nIns, nOuts) {
     inOwnershipProof.publicKey <== inSignPublicKey;
     inOwnershipProof.signature <== signature;
 
+    // Limit input values to be within 224 bits, like outputs. Every real note was
+    // created as an output, so honest values always satisfy this.
+    component limitRangeIn[nIns];
+    for (var i = 0; i < nIns; i++) {
+        limitRangeIn[i] = LimitRange(MAX_BITS_VALUE);
+        limitRangeIn[i].in <== inValues[i];
+    }
+
     // Check merkle inclusions of commitments, except for dummy notes
-    // where assetId == 0 AND value == 0
+    // where assetId == 0 AND value == 0.
+    //
+    // The gate used to be `enabled = assetId + value`, which is also zero when
+    // value == p - assetId: a note that is NOT in the tree then skipped the
+    // inclusion check (Nov 2026 circuit audit, Low). Both terms are now tested
+    // for zero separately.
+    component inAssetIsZero[nIns];
+    component inValueIsZero[nIns];
+    signal inIsDummy[nIns];
     component inMerkleProof[nIns];
     for (var i = 0; i < nIns; i++) {
+        inAssetIsZero[i] = IsZero();
+        inAssetIsZero[i].in <== inAssetIds[i];
+        inValueIsZero[i] = IsZero();
+        inValueIsZero[i].in <== inValues[i];
+        inIsDummy[i] <== inAssetIsZero[i].out * inValueIsZero[i].out;
+
         inMerkleProof[i] = MerkleProof(cmTreeDepth);
-        inMerkleProof[i].enabled <== inAssetIds[i] + inValues[i];
+        inMerkleProof[i].enabled <== 1 - inIsDummy[i];
         inMerkleProof[i].root <== commitmentTreeRoot;
         inMerkleProof[i].leaf <== inCommitmentHasher[i].out;
         inMerkleProof[i].pathIndices <== inPathIndices[i];
