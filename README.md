@@ -55,8 +55,10 @@ One `transact` proof establishes, all at once:
   `alpha + beta`). `alpha` is a SHA256 digest of the same data computed outside the circuit, so
   the on-chain contract can bind the calldata it sees to the proof cheaply.
 
-**Public inputs (12):** `addressTreeRoot`, `commitmentTreeRoot`, `hash`, `pubFlow`,
-`outRevokerPublicKey[2]`, `refundAddress`, `keySeedEncryptionPublicKey[2]`, `alpha`, `beta`, `gamma`.
+**Public inputs (3):** `alpha`, `beta`, `gamma`. `addressTreeRoot`, `commitmentTreeRoot`, `hash`,
+`pubFlow`, `outRevokerPublicKey[2]`, `refundAddress` and `keySeedEncryptionPublicKey[2]` are private
+and prepended to the UHF data list, so they enter both the in-circuit `beta` chain and the on-chain
+`alpha` chain. (HyperEVM repriced the BN254 precompiles 10x; each public input costs ~61.5k gas.)
 
 Everything else — note values, asset ids, addresses, blindings, path elements, the view private
 key and the signature — is private.
@@ -65,26 +67,17 @@ key and the signature — is private.
 
 | Main circuit | Template | What it proves |
 |---|---|---|
-| `register` | `Register()` | A root address was correctly derived from a signing key + view key, and the published view public key matches the view private key. Gates entry into the address tree. |
-| `treeUpdate` | `TreeUpdate(25, 10)` | A batch of 10 leaves was correctly appended to the commitment tree, with subtree state updated and zero-padding accounted for. Used by `QueuedMerkleTree.sol` to move insertion cost off-chain. |
-| `linkTx` | `LinkTx(32, 1)` | A nullifier revealed in the current tx corresponds to a commitment that is a member of a given association set root. Lets a user voluntarily prove provenance. **Does not compile** — see below. |
-| `anonymityScore` | `AnonymityScore(25, 8)` | Ownership of up to 8 notes of one asset and their relationship to a claimed anonymity score. |
+| `register` | `Register()` | A root address was correctly derived from a signing key + view key, and the published view public key matches the view private key. Gates entry into the address tree. One public input: `inputsHash = sha256(rootAddress, signPublicKey, viewPublicKey, publicAddress) mod p`. |
+| `treeUpdate` | `TreeUpdate(25, 10)` | A batch of 10 leaves was correctly appended to the commitment tree, with zero-padding accounted for. Used by `QueuedMerkleTree.sol` to move insertion cost off-chain. One public input: `inputsHash = sha256(leafIndex, leaves[10], lastRoot, newRoot, nZeroLeaves) mod p`; the subtrees are private and bound to `lastRoot` through the frontier. |
 
-#### Known break: `linkTx`
-
-`circuits/lib/linkTx.circom` does not compile. Line 53 wires `nullifierHasher[i].blinding`, but
-`Nullifier()` has had no `blinding` input since the nullifier was redefined for multi-revoker
-support (`c347292`, `790eef6`) — it now takes `pathIndices`, `commitment`, `viewPrivateKey` and
-`revokerPublicKey[2]`. `LinkTx` declares neither key input, so repairing it means deciding how the
-association-set nullifier should be derived and extending the template's signal layout. That is a
-protocol decision, so it is left open rather than guessed at; `tests/linkTx.spec.ts` fails until
-it is made.
+`linkTx` and `anonymityScore` were removed: `linkTx` did not compile and `anonymityScore` was never
+deployed (its dummy-note gate had the same flaw as the one fixed in `transact`).
 
 ### Library templates
 
 `address`, `commitment`, `nullifier`, `merkleProof`, `ownershipProof`, `schnorr`, `ecc`,
 `elGamal`, `poseidonCipher`, `complianceProof`, `zeroSumFungible`, `zeroSumNonFungible`,
-`sumValues`, `countAssets`, `fungibility`, `encodeAsset`, `universalHashFunction`, `utils`,
+`sumValues`, `countAssets`, `fungibility`, `encodeAsset`, `universalHashFunction`, `sha256Fields`, `utils`,
 `constants`. Each has a matching spec in `tests/` driven through a mock in `tests/mocks/`.
 
 Two protocol constants worth knowing (`circuits/lib/constants.circom`, `fungibility.circom`):
@@ -112,8 +105,6 @@ pnpm test                          # everything
 pnpm test -- tests/transact.spec.ts   # one spec
 ```
 
-> `linkTx` is currently expected to fail: `circuits/lib/linkTx.circom` does not compile
-> (see below). Every other spec passes.
 
 ## Building a circuit
 
